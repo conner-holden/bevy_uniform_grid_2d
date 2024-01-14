@@ -21,7 +21,7 @@ fn main() {
         primary_window: Some(Window {
             resolution: WindowResolution::new(800., 800.),
             title: "Many Moving Entities Example".to_string(),
-            present_mode: bevy::window::PresentMode::Mailbox,
+            present_mode: bevy::window::PresentMode::Immediate, // Disable VSync to show max FPS
             ..default()
         }),
         ..default()
