@@ -1,5 +1,7 @@
-use bevy::ecs::entity::Entity;
-use glam::{IVec2, UVec2};
+use bevy::{
+    ecs::entity::Entity,
+    math::{IVec2, UVec2},
+};
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone, PartialEq)]

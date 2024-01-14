@@ -1,6 +1,5 @@
 use bevy::{color::palettes::tailwind, prelude::*, window::WindowResolution};
 use bevy_uniform_grid_2d::prelude::*;
-use glam::Vec2;
 use iyes_perf_ui::{
     entries::{
         PerfUiFixedTimeEntries, PerfUiFramerateEntries, PerfUiSystemEntries, PerfUiWindowEntries,
@@ -29,13 +28,14 @@ fn main() {
     // Add performance UI
     .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
     .add_plugins(PerfUiPlugin)
-    // Add grid plugin
-    .add_plugins(UniformGrid2dPlugin { debug: true })
-    .insert_resource(Grid {
-        dimensions: UVec2::splat(30),
-        spacing: UVec2::splat(20),
-        ..Default::default()
-    })
+    // Add grid plugin. `Marker` is a marker component for opting entities into the grid.
+    .add_plugins(UniformGrid2dPlugin::<Marker>::default().debug(true))
+    // `5` sets pre-allocated capacity of each grid cell. Default is 4.
+    .insert_resource(
+        Grid::<Marker, 5>::default()
+            .dimensions(UVec2::splat(30))
+            .spacing(UVec2::splat(20)),
+    )
     // Change direction of sprites every 3 seconds
     .insert_resource(ChangeDirectionTimer(Timer::from_seconds(
         3.,
@@ -53,7 +53,11 @@ struct ChangeDirectionTimer(Timer);
 #[derive(Component)]
 struct Direction(Vec2);
 
-fn setup(mut commands: Commands, grid: Res<Grid>) {
+// Marker for opting entities into the grid
+#[derive(Component)]
+struct Marker;
+
+fn setup(mut commands: Commands, grid: Res<Grid<Marker>>) {
     // Add performance diagnostics UI
     commands.spawn((
         PerfUiRoot::default(),
@@ -83,10 +87,11 @@ fn setup(mut commands: Commands, grid: Res<Grid>) {
             Sprite {
                 color: OUT,
                 custom_size: Some(entity_size),
-                ..Default::default()
+                ..default()
             },
             Transform::from_xyz(position.x, position.y, 10.),
             Direction(direction),
+            Marker,
         ));
     }
 
@@ -117,23 +122,23 @@ fn movement(
 // Update the sprite's color whenever it enters or leaves the grid,
 // as well as whenever it moves to a new grid cell
 fn update_color(mut sprites: Query<&mut Sprite>, mut events: EventReader<GridEvent>) {
-    for &GridEvent { entity, op } in events.read() {
+    for &GridEvent { entity, operation } in events.read() {
         let Ok(mut sprite) = sprites.get_mut(entity) else {
             continue;
         };
-        match op {
-            GridOp::Update { .. } => {
+        match operation {
+            GridOperation::Update { .. } => {
                 if sprite.color == ON {
                     sprite.color = OFF;
                 } else {
                     sprite.color = ON;
                 }
             }
-            GridOp::Insert { .. } => {
+            GridOperation::Insert { .. } => {
                 let mut rng = rand::thread_rng();
                 sprite.color = if rng.gen_bool(0.5) { OFF } else { ON };
             }
-            GridOp::Remove { .. } => {
+            GridOperation::Remove { .. } => {
                 sprite.color = OUT;
             }
         }

@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)]
 pub mod component;
 pub mod error;
 pub mod event;

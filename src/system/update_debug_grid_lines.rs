@@ -1,13 +1,16 @@
 use bevy::{
     color::{Alpha, palettes::tailwind},
-    ecs::system::Res,
+    ecs::{component::Component, system::Res},
     gizmos::gizmos::Gizmos,
+    math::Vec2,
 };
-use glam::Vec2;
 
 use crate::resource::Grid;
 
-pub(crate) fn update_debug_grid_lines(mut gizmos: Gizmos, grid: Res<Grid>) {
+pub(crate) fn update_debug_grid_lines<Marker: Component>(
+    mut gizmos: Gizmos,
+    grid: Res<Grid<Marker>>,
+) {
     let min = grid.anchor.as_ivec2();
     let max = (grid.dimensions * grid.spacing).as_ivec2() + min;
 

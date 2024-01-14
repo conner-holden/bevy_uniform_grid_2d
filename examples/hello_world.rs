@@ -1,22 +1,8 @@
-# bevy_uniform_grid_2d
-
-### Installation
-```sh
-cargo add bevy_uniform_grid_2d
-```
-
-### Usage
-Below is the [hello_world example](examples/hello_world.rs). Grid changes are logged. For a more detailed example, see the [many_moving_entities example](examples/many_moving_entities.rs).
-
-```sh
-cargo run --example hello_world
-```
-
-```rust
+#![allow(unused_variables)]
 use bevy::prelude::*;
 use bevy_uniform_grid_2d::prelude::*;
-use glam::UVec2;
 
+#[rustfmt::skip]
 fn main() {
     App::new()
         // Add default pluugins
@@ -35,15 +21,15 @@ fn main() {
         // for distinct purposes.
         .add_plugins(UniformGrid2dPlugin::<Player>::default().debug(true))
         // The below creates a square 600x600 grid with the bottom left at the origin
-        .insert_resource(Grid::<Player> {
-            // Size of the grid (units are grid cells)
-            dimensions: UVec2::splat(30),
-            // Size of each grid cell (units are integer world-space coordinates)
-            spacing: UVec2::splat(20),
-            // You can anchor the grid somewhere specific (default is the origin)
-            // anchor: Vec2::new(23.4, 10.1)
-            ..default()
-        })
+        .insert_resource(
+            Grid::<Player>::default()
+                // Size of the grid (units are grid cells)
+                .dimensions(UVec2::splat(30))
+                // Size of each grid cell (units are integer world-space coordinates)
+                .spacing(UVec2::splat(20))
+                // You can anchor the grid somewhere specific (default is the origin)
+                // .anchor(Vec2::new(23.4, 10.1))
+        )
         .add_systems(Startup, setup)
         .add_systems(Update, handle_grid_changes)
         .add_systems(Update, movement)
@@ -116,9 +102,3 @@ fn movement(
     }
     position.translation += move_delta.extend(0.);
 }
-```
-
-### Bevy Version Support
-| bevy | bevy_uniform_grid_2d |
-| ---- | -------------------  |
-| 0.15 | 0.1                  |
