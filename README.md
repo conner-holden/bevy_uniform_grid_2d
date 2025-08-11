@@ -1,11 +1,11 @@
-### bevy_uniform_grid_2d
+# bevy_uniform_grid_2d
 
-#### Installation
+### Installation
 ```sh
 cargo add bevy_uniform_grid_2d
 ```
 
-#### Usage
+### Usage
 ```rust
 use bevy::prelude::*;
 use bevy_uniform_grid_2d::prelude::*;
@@ -18,3 +18,8 @@ fn main() {
         .run()
 }
 ```
+
+### Bevy Version Support
+| bevy | bevy_uniform_grid_2d |
+| ---- | -------------------  |
+| 0.15 | 0.1                  |
