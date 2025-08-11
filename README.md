@@ -14,7 +14,13 @@ use glam::UVec2;
 fn main() {
     App::new()
         .add_plugins(UniformGrid2dPlugin)
-        .insert_resource(Grid::new(UVec2::splat(50), UVec2::splat(2), Vec2::ZERO))
+        .insert_resource(Grid {
+            dimensions: UVec2::splat(50), // Size of the grid (units are grid cells)
+            spacing: UVec2::splat(2),     // Size of each grid cell (units are integer world-space coordinates)
+            // You can anchor the grid somewhere specific
+            // anchor: Vec2::new(20., 10.)  
+            ..Default::default()
+        })
         .run()
 }
 ```
