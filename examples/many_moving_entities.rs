@@ -1,17 +1,22 @@
 use bevy::{color::palettes::tailwind, prelude::*, window::WindowResolution};
-use bevy_uniform_grid_2d::{
-    event::{GridEvent, GridOp},
+use bevy_uniform_grid_2d::prelude::*;
+use glam::Vec2;
+use iyes_perf_ui::{
+    entries::{
+        PerfUiFixedTimeEntries, PerfUiFramerateEntries, PerfUiSystemEntries, PerfUiWindowEntries,
+    },
     prelude::*,
 };
-use glam::Vec2;
 use rand::Rng;
 
+// Colors that are toggled as the sprite moves inside (and outside) the grid
 const ON: Color = Color::Srgba(tailwind::GRAY_200);
 const OFF: Color = Color::Srgba(tailwind::RED_500);
 const OUT: Color = Color::Srgba(tailwind::GRAY_950);
 
 fn main() {
     let mut app = App::new();
+    // Setup window
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             resolution: WindowResolution::new(800., 800.),
@@ -20,12 +25,17 @@ fn main() {
         }),
         ..default()
     }))
-    .add_plugins(UniformGrid2dPlugin)
+    // Add performance UI
+    .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
+    .add_plugins(PerfUiPlugin)
+    // Add grid plugin
+    .add_plugins(UniformGrid2dPlugin { debug: true })
     .insert_resource(Grid {
         dimensions: UVec2::splat(30),
         spacing: UVec2::splat(20),
         ..Default::default()
     })
+    // Change direction of sprites every 3 seconds
     .insert_resource(ChangeDirectionTimer(Timer::from_seconds(
         3.,
         TimerMode::Repeating,
@@ -42,14 +52,25 @@ struct ChangeDirectionTimer(Timer);
 #[derive(Component)]
 struct Direction(Vec2);
 
-pub fn setup(mut commands: Commands, grid: Res<Grid>) {
-    let mut rng = rand::thread_rng();
+fn setup(mut commands: Commands, grid: Res<Grid>) {
+    // Add performance diagnostics UI
+    commands.spawn((
+        PerfUiRoot::default(),
+        // Contains everything related to FPS and frame time
+        PerfUiFramerateEntries::default(),
+        // Contains everything related to the window and cursor
+        PerfUiWindowEntries::default(),
+        // Contains everything related to system diagnostics (CPU, RAM)
+        PerfUiSystemEntries::default(),
+        // Contains everything related to fixed timestep
+        PerfUiFixedTimeEntries::default(),
+    ));
 
-    let padding = 10.;
+    // Spawn 1000 sprites randomly within (and possibly a little outside) the grid
+    let mut rng = rand::thread_rng();
+    let padding = 50.;
     let max = (grid.dimensions * grid.spacing).as_vec2() + Vec2::splat(padding) + grid.anchor;
     let min = Vec2::splat(-padding) + grid.anchor;
-
-    commands.spawn((Camera2d, Transform::from_xyz(max.x / 2., max.y / 2., 0.)));
 
     let entity_count = 1000;
     let entity_size = Vec2::splat(5.);
@@ -67,8 +88,12 @@ pub fn setup(mut commands: Commands, grid: Res<Grid>) {
             Direction(direction),
         ));
     }
+
+    // Add camera
+    commands.spawn((Camera2d, Transform::from_xyz(max.x / 2., max.y / 2., 0.)));
 }
 
+// Move sprites in their current `Direction` with a speed of 10.0
 fn movement(
     time: Res<Time>,
     mut direction_timer: ResMut<ChangeDirectionTimer>,
@@ -88,6 +113,8 @@ fn movement(
     }
 }
 
+// Update the sprite's color whenever it enters or leaves the grid,
+// as well as whenever it moves to a new grid cell
 fn update_color(mut sprites: Query<&mut Sprite>, mut events: EventReader<GridEvent>) {
     for &GridEvent { entity, op } in events.read() {
         let Ok(mut sprite) = sprites.get_mut(entity) else {

@@ -7,7 +7,7 @@ use glam::Vec2;
 
 use crate::resource::Grid;
 
-pub(crate) fn setup_grid(mut gizmos: Gizmos, grid: Res<Grid>) {
+pub(crate) fn update_debug_grid_lines(mut gizmos: Gizmos, grid: Res<Grid>) {
     let min = grid.anchor.as_ivec2();
     let max = (grid.dimensions * grid.spacing).as_ivec2() + min;
 

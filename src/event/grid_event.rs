@@ -13,3 +13,18 @@ pub enum GridOp {
     Remove { from: UVec2 },
     Update { from: UVec2, to: UVec2 },
 }
+
+impl std::fmt::Display for GridOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use GridOp::*;
+        match self {
+            Insert { to } => write!(f, "Insert {{ to: ({}, {}) }}", to.x, to.y),
+            Remove { from } => write!(f, "Remove {{ from: ({}, {}) }}", from.x, from.y),
+            Update { from, to } => write!(
+                f,
+                "Update {{ from: ({}, {}), to: ({}, {}) }}",
+                from.x, from.y, to.x, to.y
+            ),
+        }
+    }
+}

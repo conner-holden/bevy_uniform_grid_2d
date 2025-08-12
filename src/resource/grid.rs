@@ -10,9 +10,9 @@ use crate::{error::GridError, prelude::GridCell};
 
 #[derive(Default, Resource)]
 pub struct Grid {
-    /// Shape of the grid in cell units
+    /// Shape of the grid in cell units.
     pub dimensions: UVec2,
-    /// Shape of each grid cell
+    /// Shape of each grid cell in world-space units.
     pub spacing: UVec2,
     /// Point in world space to anchor the grid. Defaults to the origin.
     pub anchor: Vec2,
@@ -29,6 +29,7 @@ impl Grid {
         }
     }
 
+    /// Consruct a square grid with length and width equal to `size`.
     pub fn splat(size: u32) -> Self {
         Self {
             dimensions: UVec2::splat(size),
@@ -36,30 +37,36 @@ impl Grid {
         }
     }
 
+    /// Builder method to set the grid's `dimensions`.
     pub fn with_dimensions(mut self, dimensions: UVec2) -> Self {
         self.dimensions = dimensions;
         self
     }
 
+    /// Builder method to set the grid's `spacing`.
     pub fn with_spacing(mut self, spacing: UVec2) -> Self {
         self.spacing = spacing;
         self
     }
 
+    /// Insert an `entity` into the grid at `cell` coordinate. Updates
+    /// the `GridCell` component of the entity to reflect the change.
     pub fn insert(
         &mut self,
         commands: &mut Commands,
         entity: Entity,
         cell: UVec2,
     ) -> Result<(), GridError> {
-        if !self.is_in_bounds(cell) {
-            return Err(GridError::OutOfBounds(cell));
+        if !self.contains_cell(cell) {
+            return Err(GridError::OutOfBounds(cell.as_ivec2()));
         }
         self.data.entry(cell).or_default().push(entity);
         commands.entity(entity).insert(GridCell(cell));
         Ok(())
     }
 
+    /// Insert an `entity` into the grid at `translation` world-space coordinate.
+    /// Updates the `GridCell` component of the entity to reflect the change.
     pub fn insert_at_world_position(
         &mut self,
         commands: &mut Commands,
@@ -78,7 +85,7 @@ impl Grid {
             .map_or([].iter().copied(), |v| v.iter().copied())
     }
 
-    pub fn get_neighbors(&self, cell: UVec2) -> impl Iterator<Item = Entity> {
+    pub fn iter_neighbors(&self, cell: UVec2) -> impl Iterator<Item = Entity> {
         self.get_cell_neighbors(cell)
             .into_iter()
             .flat_map(move |neighbor_cell| self.get(neighbor_cell))
@@ -100,6 +107,8 @@ impl Grid {
         Ok(())
     }
 
+    /// Remove an `entity` located at `cell` coordinate from the grid. Updates
+    /// the `GridCell` component of the entity to reflect the change.
     pub fn remove(
         &mut self,
         commands: &mut Commands,
@@ -111,6 +120,9 @@ impl Grid {
         Ok(())
     }
 
+    /// Change the grid cell coordinate of an `entity` from `current_cell` to
+    /// `new_cell`. Updates the `GridCell` component of the entity to reflect
+    /// the change.
     pub fn update(
         &mut self,
         commands: &mut Commands,
@@ -118,8 +130,8 @@ impl Grid {
         current_cell: UVec2,
         new_cell: UVec2,
     ) -> Result<(), GridError> {
-        if !self.is_in_bounds(new_cell) {
-            return Err(GridError::OutOfBounds(new_cell));
+        if !self.contains_cell(new_cell) {
+            return Err(GridError::OutOfBounds(new_cell.as_ivec2()));
         }
         // Remove from current cell
         self.remove_from_grid(entity, current_cell)?;
@@ -129,19 +141,27 @@ impl Grid {
         Ok(())
     }
 
-    fn is_in_bounds(&self, cell: UVec2) -> bool {
+    /// Return whether a `cell` coordinate is inside the grid. Cell coordinates
+    /// have a minimum at (0,0) and an exclusive maximum at the grid's `dimensions`.
+    /// Cell coordinates will always be non-negative because they are relative to
+    /// grid space and not world space.
+    pub fn contains_cell(&self, cell: UVec2) -> bool {
         cell.cmplt(self.dimensions).all()
     }
 
+    /// Convert a `translation` in world space to a grid cell coordinate.
     pub fn world_to_grid(&self, translation: Vec3) -> Result<UVec2, GridError> {
-        let cell: UVec2 = (translation.xy() - self.anchor).floor().as_uvec2() / self.spacing;
-        if !self.is_in_bounds(cell) {
+        let cell: IVec2 = ((translation.xy() - self.anchor) / self.spacing.as_vec2())
+            .floor()
+            .as_ivec2();
+        if cell.cmpge(self.dimensions.as_ivec2()).any() || cell.cmplt(IVec2::ZERO).any() {
             return Err(GridError::OutOfBounds(cell));
         }
-        Ok(cell)
+        Ok(cell.as_uvec2())
     }
 
-    fn get_cell_neighbors(&self, cell: UVec2) -> Vec<UVec2> {
+    /// Return all cell coordinates that are valid neighbors of the `cell` parameter.
+    pub fn get_cell_neighbors(&self, cell: UVec2) -> Vec<UVec2> {
         let cell_i = cell.as_ivec2();
         let mut neighbors = Vec::with_capacity(8);
 
@@ -156,7 +176,7 @@ impl Grid {
             let y_offset = (pattern / 3) as i32 - 1; // 0,1,2 -> -1,0,1
 
             let neighbor = (cell_i + IVec2::new(x_offset, y_offset)).as_uvec2();
-            if self.is_in_bounds(neighbor) {
+            if self.contains_cell(neighbor) {
                 neighbors.push(neighbor);
             }
         }
