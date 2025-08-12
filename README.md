@@ -6,6 +6,8 @@ cargo add bevy_uniform_grid_2d
 ```
 
 ### Usage
+Below is a simple example. For a more detailed one, see the provided [example](examples/many_moving_entities.rs). You can run it with `cargo run --example many_moving_entities`.
+
 ```rust
 use bevy::prelude::*;
 use bevy_uniform_grid_2d::prelude::*;
