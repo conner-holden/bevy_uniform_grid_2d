@@ -1,7 +1,7 @@
 use bevy::ecs::{entity::Entity, event::Event};
 use glam::UVec2;
 
-#[derive(Event)]
+#[derive(Clone, Copy, Debug, Event)]
 pub struct GridEvent {
     pub entity: Entity,
     pub op: GridOp,

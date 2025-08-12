@@ -16,7 +16,7 @@ pub struct Grid {
     pub spacing: UVec2,
     /// Point in world space to anchor the grid. Defaults to the origin.
     pub anchor: Vec2,
-    data: FxHashMap<UVec2, SmallVec<[Entity; 4]>>,
+    pub data: FxHashMap<UVec2, SmallVec<[Entity; 4]>>,
 }
 
 impl Grid {
@@ -134,7 +134,7 @@ impl Grid {
     }
 
     pub fn world_to_grid(&self, translation: Vec3) -> Result<UVec2, GridError> {
-        let cell: UVec2 = (translation.xy() - self.anchor).floor().as_uvec2();
+        let cell: UVec2 = (translation.xy() - self.anchor).floor().as_uvec2() / self.spacing;
         if !self.is_in_bounds(cell) {
             return Err(GridError::OutOfBounds(cell));
         }
