@@ -4,8 +4,21 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.15", default-features = false }
+bevy = { version = "0.15", features = ["dynamic_linking"] }
 glam = "0.29.3"
 rustc-hash = "2.1.1"
 smallvec = "1.15.1"
 thiserror = "2.0.12"
+rand = "0.8"
+
+[[example]]
+name = "many_moving_entities"
+ 
+ 
+[profile.dev]
+debug = false
+strip = "debuginfo"
+opt-level = 0
+
+[profile.dev.package."*"]
+opt-level = 3
