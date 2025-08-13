@@ -35,7 +35,6 @@ pub(crate) fn update_grid(
                     continue;
                 };
                 if new_cell != cell.0 && grid.update(entity, cell.0, new_cell).is_ok() {
-                    cell.0 = new_cell;
                     events.send(GridEvent {
                         entity,
                         op: GridOp::Update {
@@ -43,6 +42,7 @@ pub(crate) fn update_grid(
                             to: new_cell,
                         },
                     });
+                    cell.0 = new_cell;
                 };
             }
             Err(GridError::OutOfBounds(_)) => {
