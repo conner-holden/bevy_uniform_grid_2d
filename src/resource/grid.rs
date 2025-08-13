@@ -5,6 +5,38 @@ use smallvec::SmallVec;
 
 use crate::error::GridError;
 
+/// Iterator over neighboring grid cells
+pub struct NeighborIterator {
+    cell: IVec2,
+    dimensions: UVec2,
+    pattern: u8,
+}
+
+impl Iterator for NeighborIterator {
+    type Item = UVec2;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.pattern < 9 {
+            if self.pattern == 4 {
+                self.pattern += 1;
+                continue; // Skip center cell
+            }
+
+            let x_offset = (self.pattern % 3) as i32 - 1;
+            let y_offset = (self.pattern / 3) as i32 - 1;
+            let neighbor = self.cell + IVec2::new(x_offset, y_offset);
+            self.pattern += 1;
+
+            // Check bounds
+            if neighbor.cmpge(IVec2::ZERO).all() && neighbor.cmplt(self.dimensions.as_ivec2()).all() {
+                return Some(neighbor.as_uvec2());
+            }
+        }
+        None
+    }
+}
+
 #[derive(Default, Resource)]
 pub struct Grid {
     /// Shape of the grid in cell units.
@@ -78,9 +110,8 @@ impl Grid {
     }
 
     #[inline(always)]
-    pub fn iter_neighbors(&self, cell: UVec2) -> impl Iterator<Item = Entity> {
+    pub fn iter_neighbors(&self, cell: UVec2) -> impl Iterator<Item = Entity> + '_ {
         self.get_cell_neighbors(cell)
-            .into_iter()
             .flat_map(move |neighbor_cell| self.get(neighbor_cell))
     }
 
@@ -150,28 +181,13 @@ impl Grid {
         Ok(cell.as_uvec2())
     }
 
-    /// Return all cell coordinates that are valid neighbors of the `cell` parameter.
+    /// Return an iterator over all valid neighboring cell coordinates.
     #[inline(always)]
-    pub fn get_cell_neighbors(&self, cell: UVec2) -> Vec<UVec2> {
-        let cell_i = cell.as_ivec2();
-        let mut neighbors = Vec::with_capacity(8);
-
-        // Generate all 9 combinations using bit patterns (0-8), skip center (4)
-        for pattern in 0u8..9 {
-            if pattern == 4 {
-                continue;
-            } // Skip center (1,1) -> pattern 4
-
-            // Convert pattern to x,y offsets: pattern = y*3 + x
-            let x_offset = (pattern % 3) as i32 - 1; // 0,1,2 -> -1,0,1
-            let y_offset = (pattern / 3) as i32 - 1; // 0,1,2 -> -1,0,1
-
-            let neighbor = (cell_i + IVec2::new(x_offset, y_offset)).as_uvec2();
-            if self.contains_cell(neighbor) {
-                neighbors.push(neighbor);
-            }
+    pub fn get_cell_neighbors(&self, cell: UVec2) -> NeighborIterator {
+        NeighborIterator {
+            cell: cell.as_ivec2(),
+            dimensions: self.dimensions,
+            pattern: 0,
         }
-
-        neighbors
     }
 }
