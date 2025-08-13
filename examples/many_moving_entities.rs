@@ -21,6 +21,7 @@ fn main() {
         primary_window: Some(Window {
             resolution: WindowResolution::new(800., 800.),
             title: "Many Moving Entities Example".to_string(),
+            present_mode: bevy::window::PresentMode::Mailbox,
             ..default()
         }),
         ..default()
@@ -122,10 +123,10 @@ fn update_color(mut sprites: Query<&mut Sprite>, mut events: EventReader<GridEve
         };
         match op {
             GridOp::Update { .. } => {
-                if sprite.color == OFF {
-                    sprite.color = ON;
-                } else {
+                if sprite.color == ON {
                     sprite.color = OFF;
+                } else {
+                    sprite.color = ON;
                 }
             }
             GridOp::Insert { .. } => {

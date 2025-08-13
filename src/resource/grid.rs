@@ -1,12 +1,9 @@
-use bevy::ecs::{
-    entity::Entity,
-    system::{Commands, Resource},
-};
+use bevy::ecs::{entity::Entity, system::Resource};
 use glam::{IVec2, UVec2, Vec2, Vec3, Vec3Swizzles};
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 
-use crate::{error::GridError, prelude::GridCell};
+use crate::error::GridError;
 
 #[derive(Default, Resource)]
 pub struct Grid {
@@ -51,17 +48,11 @@ impl Grid {
 
     /// Insert an `entity` into the grid at `cell` coordinate. Updates
     /// the `GridCell` component of the entity to reflect the change.
-    pub fn insert(
-        &mut self,
-        commands: &mut Commands,
-        entity: Entity,
-        cell: UVec2,
-    ) -> Result<(), GridError> {
+    pub fn insert(&mut self, entity: Entity, cell: UVec2) -> Result<(), GridError> {
         if !self.contains_cell(cell) {
             return Err(GridError::OutOfBounds(cell.as_ivec2()));
         }
         self.data.entry(cell).or_default().push(entity);
-        commands.entity(entity).insert(GridCell(cell));
         Ok(())
     }
 
@@ -69,13 +60,11 @@ impl Grid {
     /// Updates the `GridCell` component of the entity to reflect the change.
     pub fn insert_at_world_position(
         &mut self,
-        commands: &mut Commands,
         entity: Entity,
         translation: Vec3,
     ) -> Result<UVec2, GridError> {
         let cell = self.world_to_grid(translation)?;
         self.data.entry(cell).or_default().push(entity);
-        commands.entity(entity).insert(GridCell(cell));
         Ok(cell)
     }
 
@@ -109,14 +98,8 @@ impl Grid {
 
     /// Remove an `entity` located at `cell` coordinate from the grid. Updates
     /// the `GridCell` component of the entity to reflect the change.
-    pub fn remove(
-        &mut self,
-        commands: &mut Commands,
-        entity: Entity,
-        cell: UVec2,
-    ) -> Result<(), GridError> {
+    pub fn remove(&mut self, entity: Entity, cell: UVec2) -> Result<(), GridError> {
         self.remove_from_grid(entity, cell)?;
-        commands.entity(entity).insert(GridCell(cell));
         Ok(())
     }
 
@@ -125,7 +108,6 @@ impl Grid {
     /// the change.
     pub fn update(
         &mut self,
-        commands: &mut Commands,
         entity: Entity,
         current_cell: UVec2,
         new_cell: UVec2,
@@ -137,7 +119,6 @@ impl Grid {
         self.remove_from_grid(entity, current_cell)?;
         // Add to new cell
         self.data.entry(new_cell).or_default().push(entity);
-        commands.entity(entity).insert(GridCell(new_cell));
         Ok(())
     }
 
