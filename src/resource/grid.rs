@@ -48,6 +48,7 @@ impl Grid {
 
     /// Insert an `entity` into the grid at `cell` coordinate. Updates
     /// the `GridCell` component of the entity to reflect the change.
+    #[inline(always)]
     pub fn insert(&mut self, entity: Entity, cell: UVec2) -> Result<(), GridError> {
         if !self.contains_cell(cell) {
             return Err(GridError::OutOfBounds(cell.as_ivec2()));
@@ -58,6 +59,7 @@ impl Grid {
 
     /// Insert an `entity` into the grid at `translation` world-space coordinate.
     /// Updates the `GridCell` component of the entity to reflect the change.
+    #[inline(always)]
     pub fn insert_at_world_position(
         &mut self,
         entity: Entity,
@@ -68,18 +70,21 @@ impl Grid {
         Ok(cell)
     }
 
+    #[inline(always)]
     pub fn get(&self, cell: UVec2) -> impl Iterator<Item = Entity> {
         self.data
             .get(&cell)
             .map_or([].iter().copied(), |v| v.iter().copied())
     }
 
+    #[inline(always)]
     pub fn iter_neighbors(&self, cell: UVec2) -> impl Iterator<Item = Entity> {
         self.get_cell_neighbors(cell)
             .into_iter()
             .flat_map(move |neighbor_cell| self.get(neighbor_cell))
     }
 
+    #[inline(always)]
     fn remove_from_grid(&mut self, entity: Entity, cell: UVec2) -> Result<(), GridError> {
         if let Some(entities) = self.data.get_mut(&cell) {
             if let Some(pos) = entities.iter().position(|&e| e == entity) {
@@ -98,6 +103,7 @@ impl Grid {
 
     /// Remove an `entity` located at `cell` coordinate from the grid. Updates
     /// the `GridCell` component of the entity to reflect the change.
+    #[inline(always)]
     pub fn remove(&mut self, entity: Entity, cell: UVec2) -> Result<(), GridError> {
         self.remove_from_grid(entity, cell)?;
         Ok(())
@@ -106,6 +112,7 @@ impl Grid {
     /// Change the grid cell coordinate of an `entity` from `current_cell` to
     /// `new_cell`. Updates the `GridCell` component of the entity to reflect
     /// the change.
+    #[inline(always)]
     pub fn update(
         &mut self,
         entity: Entity,
@@ -126,11 +133,13 @@ impl Grid {
     /// have a minimum at (0,0) and an exclusive maximum at the grid's `dimensions`.
     /// Cell coordinates will always be non-negative because they are relative to
     /// grid space and not world space.
+    #[inline(always)]
     pub fn contains_cell(&self, cell: UVec2) -> bool {
         cell.cmplt(self.dimensions).all()
     }
 
     /// Convert a `translation` in world space to a grid cell coordinate.
+    #[inline(always)]
     pub fn world_to_grid(&self, translation: Vec3) -> Result<UVec2, GridError> {
         let cell: IVec2 = ((translation.xy() - self.anchor) / self.spacing.as_vec2())
             .floor()
@@ -142,6 +151,7 @@ impl Grid {
     }
 
     /// Return all cell coordinates that are valid neighbors of the `cell` parameter.
+    #[inline(always)]
     pub fn get_cell_neighbors(&self, cell: UVec2) -> Vec<UVec2> {
         let cell_i = cell.as_ivec2();
         let mut neighbors = Vec::with_capacity(8);
