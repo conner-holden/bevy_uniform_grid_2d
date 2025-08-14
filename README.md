@@ -1,4 +1,5 @@
 # bevy_uniform_grid_2d
+An easy-to-use plugin for people who need basic spatial indexing.
 
 ### Installation
 ```sh
