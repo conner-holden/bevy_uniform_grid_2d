@@ -328,7 +328,7 @@ fn update_color(mut sprites: Query<&mut Sprite>, mut events: EventReader<GridEve
     }
 }
 ```
-<details>
+</details>
 
 ## Bevy Version Support
 | bevy | bevy_uniform_grid_2d |
