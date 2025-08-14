@@ -84,7 +84,7 @@ fn movement(
     keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
-    let mut position = transform.get_single_mut().unwrap();
+    let mut position = transform.single_mut().unwrap();
 
     let t = time.delta_secs();
     let up = keyboard.any_pressed([KeyCode::KeyW]);

@@ -26,10 +26,10 @@ fn main() {
         ..default()
     }))
     // Add performance UI
-    .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
+    .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
     .add_plugins(PerfUiPlugin)
     // Add grid plugin. `Marker` is a marker component for opting entities into the grid.
-    .add_plugins(UniformGrid2dPlugin::<Marker>::default().debug(true))
+    .add_plugins(UniformGrid2dPlugin::<Marker, 5>::default().debug(true))
     // `5` sets pre-allocated capacity of each grid cell. Default is 4.
     .insert_resource(
         Grid::<Marker, 5>::default()
@@ -57,7 +57,7 @@ struct Direction(Vec2);
 #[derive(Component)]
 struct Marker;
 
-fn setup(mut commands: Commands, grid: Res<Grid<Marker>>) {
+fn setup(mut commands: Commands, grid: Res<Grid<Marker, 5>>) {
     // Add performance diagnostics UI
     commands.spawn((
         PerfUiRoot::default(),
