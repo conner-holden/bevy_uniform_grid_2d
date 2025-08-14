@@ -26,7 +26,7 @@ fn main() {
         ..default()
     }))
     // Add performance UI
-    .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
+    .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
     .add_plugins(PerfUiPlugin)
     // Add grid plugin. `Marker` is a marker component for opting entities into the grid.
     .add_plugins(UniformGrid2dPlugin::<Marker, 5>::default().debug(true))

@@ -31,7 +31,7 @@ pub(crate) fn update_grid<Marker: Component, const N: usize>(
                 let Some(mut current_cell) = current_cell else {
                     if grid.insert(entity, new_cell).is_ok() {
                         commands.entity(entity).insert(GridCell(new_cell));
-                        events.send(GridEvent {
+                        events.write(GridEvent {
                             entity,
                             operation: GridOperation::Insert { to: new_cell },
                         });
@@ -41,7 +41,7 @@ pub(crate) fn update_grid<Marker: Component, const N: usize>(
                 if new_cell != current_cell.0
                     && grid.update(entity, current_cell.0, new_cell).is_ok()
                 {
-                    events.send(GridEvent {
+                    events.write(GridEvent {
                         entity,
                         operation: GridOperation::Update {
                             from: current_cell.0,
@@ -56,7 +56,7 @@ pub(crate) fn update_grid<Marker: Component, const N: usize>(
                     && grid.remove(entity, current_cell.0).is_ok()
                 {
                     commands.entity(entity).remove::<GridCell>();
-                    events.send(GridEvent {
+                    events.write(GridEvent {
                         entity,
                         operation: GridOperation::Remove {
                             from: current_cell.0,

@@ -98,7 +98,7 @@ fn movement(
     keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
-    let mut position = transform.get_single_mut().unwrap();
+    let mut position = transform.single_mut().unwrap();
 
     let t = time.delta_secs();
     let up = keyboard.any_pressed([KeyCode::KeyW]);
@@ -121,6 +121,7 @@ fn movement(
 ### Bevy Version Support
 | bevy | bevy_uniform_grid_2d |
 | ---- | -------------------  |
+| 0.16 | 0.4                  |
 | 0.15 | 0.3                  |
 | 0.14 | 0.2                  |
 | 0.13 | 0.1                  |

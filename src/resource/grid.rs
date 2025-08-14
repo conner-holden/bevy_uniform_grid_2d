@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use bevy::{
-    ecs::{component::Component, entity::Entity, system::Resource},
+    ecs::{component::Component, entity::Entity, resource::Resource},
     math::{IVec2, UVec2, Vec2, Vec3, Vec3Swizzles},
 };
 use rustc_hash::FxHashMap;
