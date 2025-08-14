@@ -72,7 +72,7 @@ fn handle_grid_changes(
     // Events are emitted any time an entity enters, leaves, or changes which grid cell it's in
     for &GridEvent { entity, operation } in events.read() {
         // The grid `operation` can be `Insert`, `Remove`, or `Update`
-        info!("entity={entity:?} grid_event={operation}");
+        info!("entity={entity} grid_event={operation}");
 
         if let GridOperation::Update { from, to } = operation {
             // Here we are checking all the entities in neighboring grid cells
