@@ -19,7 +19,7 @@ fn main() {
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             resolution: WindowResolution::new(800., 800.),
-            title: "Many Moving Entities Example".to_string(),
+            title: "Stress Test Example".to_string(),
             present_mode: bevy::window::PresentMode::Immediate, // Disable VSync to show max FPS
             ..default()
         }),

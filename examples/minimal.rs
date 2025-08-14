@@ -9,7 +9,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: bevy::window::WindowResolution::new(800., 800.),
-                title: "Hello World Example".to_string(),
+                title: "Minimal Example".to_string(),
                 present_mode: bevy::window::PresentMode::Immediate, // Disable VSync to show max FPS
                 ..default()
             }),

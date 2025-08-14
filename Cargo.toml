@@ -16,10 +16,10 @@ iyes_perf_ui = "0.5"
 rand = "0.8"
 
 [[example]]
-name = "hello_world"
+name = "minimal"
 
 [[example]]
-name = "many_moving_entities"
+name = "stress_test"
 
 [[bench]]
 name = "benchmarks"
