@@ -55,17 +55,23 @@ struct Player;
 
 fn setup(mut commands: Commands) {
     // Add a camera
-    commands.spawn((Camera2d, Transform::from_xyz(300., 300., 0.)));
+    commands.spawn(Camera2dBundle {
+        transform: Transform::from_xyz(300., 300., 0.),
+        ..default()
+    });
 
     commands.spawn((
         // Add a sprite so we can visualize the entity
-        Sprite {
-            color: Color::WHITE,
-            custom_size: Some(Vec2::splat(10.0)),
+        SpriteBundle {
+            sprite: Sprite {
+                color: Color::WHITE,
+                custom_size: Some(Vec2::splat(10.0)),
+                ..default()
+            },
+            // Entities with a `Transform` are automatically added to the grid
+            transform: Transform::from_xyz(300., 300., 0.),
             ..default()
         },
-        // Entities with a `Transform` are automatically added to the grid
-        Transform::from_xyz(300., 300., 0.),
         // Player marker for movement handling
         Player,
     ));
@@ -100,7 +106,7 @@ fn movement(
 ) {
     let mut position = transform.get_single_mut().unwrap();
 
-    let t = time.delta_secs();
+    let t = time.delta_seconds();
     let up = keyboard.any_pressed([KeyCode::KeyW]);
     let down = keyboard.any_pressed([KeyCode::KeyS]);
     let left = keyboard.any_pressed([KeyCode::KeyA]);
@@ -121,4 +127,5 @@ fn movement(
 ### Bevy Version Support
 | bevy | bevy_uniform_grid_2d |
 | ---- | -------------------  |
-| 0.15 | 0.1                  |
+| 0.14 | 0.2                  |
+| 0.13 | 0.1                  |
