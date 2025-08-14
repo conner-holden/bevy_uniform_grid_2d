@@ -1,0 +1,30 @@
+name: Feature Request
+description: File a feature request.
+labels: ["feature"]
+assignees:
+  - conner-holden
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this feature request!
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature description
+      description: Describe the feature you want added.
+    validations:
+      required: true
+  - type: dropdown
+    id: version
+    attributes:
+      label: Version
+      description: What version are you using?
+      options:
+        - v0.4.0 (Default)
+        - v0.3.0
+        - v0.2.0
+        - v0.1.0
+      default: 0
+    validations:
+      required: true
