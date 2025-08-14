@@ -1,17 +1,6 @@
-use bevy::{color::palettes::tailwind, prelude::*, window::WindowResolution};
+use bevy::{prelude::*, window::WindowResolution};
 use bevy_uniform_grid_2d::prelude::*;
-use iyes_perf_ui::{
-    entries::{
-        PerfUiFixedTimeEntries, PerfUiFramerateEntries, PerfUiSystemEntries, PerfUiWindowEntries,
-    },
-    prelude::*,
-};
 use rand::Rng;
-
-// Colors that are toggled as the sprite moves inside (and outside) the grid
-const ON: Color = Color::Srgba(tailwind::GRAY_200);
-const OFF: Color = Color::Srgba(tailwind::RED_500);
-const OUT: Color = Color::Srgba(tailwind::GRAY_950);
 
 fn main() {
     let mut app = App::new();
@@ -27,12 +16,10 @@ fn main() {
     }))
     // Add performance UI
     .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
-    .add_plugins(PerfUiPlugin)
     // Add grid plugin. `Marker` is a marker component for opting entities into the grid.
     .add_plugins(UniformGrid2dPlugin::<Marker>::default().debug(true))
-    // `5` sets pre-allocated capacity of each grid cell. Default is 4.
     .insert_resource(
-        Grid::<Marker, 5>::default()
+        Grid::<Marker>::default()
             .dimensions(UVec2::splat(30))
             .spacing(UVec2::splat(20)),
     )
@@ -58,19 +45,6 @@ struct Direction(Vec2);
 struct Marker;
 
 fn setup(mut commands: Commands, grid: Res<Grid<Marker>>) {
-    // Add performance diagnostics UI
-    commands.spawn((
-        PerfUiRoot::default(),
-        // Contains everything related to FPS and frame time
-        PerfUiFramerateEntries::default(),
-        // Contains everything related to the window and cursor
-        PerfUiWindowEntries::default(),
-        // Contains everything related to system diagnostics (CPU, RAM)
-        PerfUiSystemEntries::default(),
-        // Contains everything related to fixed timestep
-        PerfUiFixedTimeEntries::default(),
-    ));
-
     // Spawn 1000 sprites randomly within (and possibly a little outside) the grid
     let mut rng = rand::thread_rng();
     let padding = 50.;
@@ -84,19 +58,25 @@ fn setup(mut commands: Commands, grid: Res<Grid<Marker>>) {
         let direction = Vec2::new(rng.gen_range(-1.0..=1.0), rng.gen_range(-1.0..=1.0)).normalize();
 
         commands.spawn((
-            Sprite {
-                color: OUT,
-                custom_size: Some(entity_size),
+            SpriteBundle {
+                sprite: Sprite {
+                    color: Color::rgb_u8(0, 0, 0),
+                    custom_size: Some(entity_size),
+                    ..default()
+                },
+                transform: Transform::from_xyz(position.x, position.y, 10.),
                 ..default()
             },
-            Transform::from_xyz(position.x, position.y, 10.),
             Direction(direction),
             Marker,
         ));
     }
 
     // Add camera
-    commands.spawn((Camera2d, Transform::from_xyz(max.x / 2., max.y / 2., 0.)));
+    commands.spawn(Camera2dBundle {
+        transform: Transform::from_xyz(max.x / 2., max.y / 2., 0.),
+        ..default()
+    });
 }
 
 // Move sprites in their current `Direction` with a speed of 10.0
@@ -106,7 +86,7 @@ fn movement(
     mut query: Query<(&mut Transform, &mut Direction)>,
 ) {
     let mut rng = rand::thread_rng();
-    let t = time.delta_secs();
+    let t = time.delta_seconds();
     direction_timer.0.tick(time.delta());
     let change_direction = direction_timer.0.just_finished();
     for (mut transform, mut direction) in &mut query {
@@ -128,18 +108,22 @@ fn update_color(mut sprites: Query<&mut Sprite>, mut events: EventReader<GridEve
         };
         match operation {
             GridOperation::Update { .. } => {
-                if sprite.color == ON {
-                    sprite.color = OFF;
+                if sprite.color == Color::rgb_u8(220, 220, 220) {
+                    sprite.color = Color::rgb_u8(200, 0, 0);
                 } else {
-                    sprite.color = ON;
+                    sprite.color = Color::rgb_u8(220, 220, 220);
                 }
             }
             GridOperation::Insert { .. } => {
                 let mut rng = rand::thread_rng();
-                sprite.color = if rng.gen_bool(0.5) { OFF } else { ON };
+                sprite.color = if rng.gen_bool(0.5) {
+                    Color::rgb_u8(200, 0, 0)
+                } else {
+                    Color::rgb_u8(220, 220, 220)
+                };
             }
             GridOperation::Remove { .. } => {
-                sprite.color = OUT;
+                sprite.color = Color::rgb_u8(0, 0, 0);
             }
         }
     }
