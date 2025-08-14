@@ -16,9 +16,9 @@ use crate::{
     resource::Grid,
 };
 
-pub(crate) fn update_grid<Marker: Component>(
+pub(crate) fn update_grid<Marker: Component, const N: usize>(
     mut commands: Commands,
-    mut grid: ResMut<Grid<Marker>>,
+    mut grid: ResMut<Grid<Marker, N>>,
     mut grid_elements: Query<
         (Entity, &Transform, Option<&mut GridCell>),
         (Changed<Transform>, With<Marker>),
