@@ -121,4 +121,6 @@ fn movement(
 ### Bevy Version Support
 | bevy | bevy_uniform_grid_2d |
 | ---- | -------------------  |
-| 0.15 | 0.1                  |
+| 0.15 | 0.3                  |
+| 0.14 | 0.2                  |
+| 0.13 | 0.1                  |

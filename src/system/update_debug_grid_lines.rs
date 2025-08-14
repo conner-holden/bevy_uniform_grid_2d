@@ -7,9 +7,9 @@ use bevy::{
 
 use crate::resource::Grid;
 
-pub(crate) fn update_debug_grid_lines<Marker: Component>(
+pub(crate) fn update_debug_grid_lines<Marker: Component, const N: usize>(
     mut gizmos: Gizmos,
-    grid: Res<Grid<Marker>>,
+    grid: Res<Grid<Marker, N>>,
 ) {
     let min = grid.anchor.as_ivec2();
     let max = (grid.dimensions * grid.spacing).as_ivec2() + min;
