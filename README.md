@@ -3,6 +3,8 @@
 [![Crates.io](https://img.shields.io/crates/v/bevy_uniform_grid_2d.svg)](https://crates.io/crates/bevy_uniform_grid_2d)
 [![Docs](https://docs.rs/bevy_uniform_grid_2d/badge.svg)](https://docs.rs/bevy_uniform_grid_2d/latest/bevy_uniform_grid_2d/)
 [![Downloads](https://img.shields.io/crates/d/bevy_uniform_grid_2d.svg)](https://crates.io/crates/bevy_uniform_grid_2d)
+![Issues](https://img.shields.io/github/issues/conner-holden/bevy_uniform_grid_2d)
+![Closed Issues](https://img.shields.io/github/issues-closed/conner-holden/bevy_uniform_grid_2d)
 
 An easy-to-use plugin for people who need basic spatial indexing.
 
