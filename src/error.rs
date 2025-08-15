@@ -10,6 +10,6 @@ pub enum GridError {
     OutOfBounds(IVec2),
     #[error("cell {0} not found")]
     CellNotFound(UVec2),
-    #[error("entity {0} not found")]
+    #[error("entity {0:?} not found")]
     EntityNotFound(Entity),
 }

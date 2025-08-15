@@ -1,7 +1,15 @@
 [package]
 name = "bevy_uniform_grid_2d"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
+description = "A simple Bevy plugin for uniform grid spatial indexing"
+authors = ["Conner Holden"]
+keywords = ["game", "grid", "gamedev", "spatial", "bevy"]
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/conner-holden/bevy_uniform_grid_2d.git"
+homepage = "https://github.com/conner-holden/bevy_uniform_grid_2d"
+documentation = "https://docs.rs/bevy_uniform_grid_2d"
 
 [dependencies]
 bevy = { version = "0.15", default-features = false, features = ["bevy_gizmos"] }
@@ -16,10 +24,13 @@ iyes_perf_ui = "0.4"
 rand = "0.8"
 
 [[example]]
-name = "hello_world"
+name = "minimal"
 
 [[example]]
-name = "many_moving_entities"
+name = "stress_test"
+
+[[example]]
+name = "resize"
 
 [[bench]]
 name = "benchmarks"

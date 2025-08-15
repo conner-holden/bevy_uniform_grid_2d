@@ -9,20 +9,20 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: bevy::window::WindowResolution::new(800., 800.),
-                title: "Hello World Example".to_string(),
+                title: "Minimal Example".to_string(),
                 present_mode: bevy::window::PresentMode::Immediate, // Disable VSync to show max FPS
                 ..default()
             }),
             ..default()
         }))
         // Add grid plugin. `debug` toggles grid lines (default is false).
+        //
         // The plugin is generic over `Player`. Anything with this component
         // will get added to the grid. This allows you to create multiple grids
         // for distinct purposes.
-        .add_plugins(UniformGrid2dPlugin::<Player>::default().debug(true))
+        //
         // The below creates a square 600x600 grid with the bottom left at the origin
-        .insert_resource(
-            Grid::<Player>::default()
+        .add_plugins(UniformGrid2dPlugin::<Player>::default().debug(true)
                 // Size of the grid (units are grid cells)
                 .dimensions(UVec2::splat(30))
                 // Size of each grid cell (units are integer world-space coordinates)
@@ -33,11 +33,15 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Update, handle_grid_changes)
         .add_systems(Update, movement)
+        .add_systems(Update, update_ui)
         .run();
 }
 
 #[derive(Component)]
 struct Player;
+
+#[derive(Component)]
+struct GridCellUI;
 
 fn setup(mut commands: Commands) {
     // Add a camera
@@ -55,6 +59,27 @@ fn setup(mut commands: Commands) {
         // Player marker for movement handling
         Player,
     ));
+
+    // Add UI for grid cell display
+    commands
+        .spawn(Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(10.0),
+            left: Val::Px(10.0),
+            padding: UiRect::all(Val::Px(8.0)),
+            ..default()
+        })
+        .with_children(|parent| {
+            parent.spawn((
+                Text::new("Grid Cell: N/A"),
+                TextFont {
+                    font_size: 24.0,
+                    ..default()
+                },
+                TextColor(Color::WHITE),
+                GridCellUI,
+            ));
+        });
 }
 
 fn handle_grid_changes(
@@ -64,11 +89,11 @@ fn handle_grid_changes(
     mut events: EventReader<GridEvent>,
 ) {
     // Events are emitted any time an entity enters, leaves, or changes which grid cell it's in
-    for &GridEvent { entity, operation } in events.read() {
+    for event in events.read() {
         // The grid `operation` can be `Insert`, `Remove`, or `Update`
-        info!("entity={entity} grid_event={operation}");
+        info!("{}", event);
 
-        if let GridOperation::Update { from, to } = operation {
+        if let GridOperation::Update { from, to } = event.operation {
             // Here we are checking all the entities in neighboring grid cells
             // whenever the entity in question changes the cell it's in
             for neighbor_entity in grid.iter_neighbors(to) {
@@ -84,7 +109,7 @@ fn movement(
     keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
-    let mut position = transform.get_single_mut().unwrap();
+    let mut position = transform.single_mut();
 
     let t = time.delta_secs();
     let up = keyboard.any_pressed([KeyCode::KeyW]);
@@ -101,4 +126,22 @@ fn movement(
         move_delta *= t * 100.;
     }
     position.translation += move_delta.extend(0.);
+}
+
+// Display current grid cell
+fn update_ui(
+    player_query: Query<&Transform, With<Player>>,
+    mut ui_query: Query<&mut Text, With<GridCellUI>>,
+    grid: Res<Grid<Player>>,
+) {
+    if let (Ok(transform), Ok(mut text)) = (player_query.get_single(), ui_query.get_single_mut()) {
+        match grid.world_to_grid(transform.translation) {
+            Ok(cell) => {
+                **text = format!("Grid Cell: ({}, {})", cell.x, cell.y);
+            }
+            Err(_) => {
+                **text = "Grid Cell: Out of bounds".to_string();
+            }
+        }
+    }
 }
