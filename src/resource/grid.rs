@@ -12,11 +12,11 @@ use crate::error::GridError;
 #[derive(Resource)]
 pub struct Grid<Marker: Component, const N: usize = 4> {
     /// Shape of the grid in cell units.
-    pub(crate) dimensions: UVec2,
+    dimensions: UVec2,
     /// Shape of each grid cell in world-space units.
-    pub(crate) spacing: UVec2,
+    spacing: UVec2,
     /// Point in world space to anchor the grid. Defaults to the origin.
-    pub(crate) anchor: Vec2,
+    anchor: Vec2,
     data: FxHashMap<UVec2, SmallVec<[Entity; N]>>,
     marker: PhantomData<Marker>,
 }
@@ -35,16 +35,19 @@ impl<Marker: Component, const N: usize> Default for Grid<Marker, N> {
 
 impl<Marker: Component, const N: usize> Grid<Marker, N> {
     /// Getter method for the grid's `dimensions`.
+    #[inline]
     pub fn dimensions(&self) -> UVec2 {
         self.dimensions
     }
 
     /// Getter method for the grid's `spacing`.
+    #[inline]
     pub fn spacing(&self) -> UVec2 {
         self.spacing
     }
 
     /// Getter method for the grid's `anchor`.
+    #[inline]
     pub fn anchor(&self) -> Vec2 {
         self.anchor
     }
@@ -67,20 +70,26 @@ impl<Marker: Component, const N: usize> Grid<Marker, N> {
         self
     }
 
-    /// Setter method for the grid's `dimensions`.
-    pub fn set_dimensions(&mut self, value: impl Into<UVec2>) -> &mut Self {
+    /// Internal setter method for the grid's `dimensions`. Should only
+    /// be done in response to `TransformGridEvent`.
+    #[inline]
+    pub(crate) fn set_dimensions(&mut self, value: impl Into<UVec2>) -> &mut Self {
         self.dimensions = value.into();
         self
     }
 
-    /// Setter method for the grid's `spacing`.
-    pub fn set_spacing(&mut self, value: impl Into<UVec2>) -> &mut Self {
+    /// Internal setter method for the grid's `spacing`. Should only
+    /// be done in response to `TransformGridEvent`.
+    #[inline]
+    pub(crate) fn set_spacing(&mut self, value: impl Into<UVec2>) -> &mut Self {
         self.spacing = value.into();
         self
     }
 
-    /// Setter method for the grid's `anchor`.
-    pub fn set_anchor(&mut self, value: impl Into<Vec2>) -> &mut Self {
+    /// Internal setter method for the grid's `anchor`. Should only
+    /// be done in response to `TransformGridEvent`.
+    #[inline]
+    pub(crate) fn set_anchor(&mut self, value: impl Into<Vec2>) -> &mut Self {
         self.anchor = value.into();
         self
     }

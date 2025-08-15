@@ -16,17 +16,17 @@ fn main() {
             ..default()
         }))
         // Add grid plugin. `debug` toggles grid lines (default is false).
+        //
         // The plugin is generic over `Player`. Anything with this component
         // will get added to the grid. This allows you to create multiple grids
         // for distinct purposes.
-        .add_plugins(UniformGrid2dPlugin::<Player>::default().debug(true))
+        //
         // The below creates a square 600x600 grid with the bottom left at the origin
-        .insert_resource(
-            Grid::<Player>::default()
+        .add_plugins(UniformGrid2dPlugin::<Player>::default().debug(true)
                 // Size of the grid (units are grid cells)
-                .with_dimensions(UVec2::splat(30))
+                .dimensions(UVec2::splat(30))
                 // Size of each grid cell (units are integer world-space coordinates)
-                .with_spacing(UVec2::splat(20))
+                .spacing(UVec2::splat(20))
                 // You can anchor the grid somewhere specific (default is the origin)
                 // .anchor(Vec2::new(23.4, 10.1))
         )
@@ -89,11 +89,11 @@ fn handle_grid_changes(
     mut events: EventReader<GridEvent>,
 ) {
     // Events are emitted any time an entity enters, leaves, or changes which grid cell it's in
-    for &GridEvent { entity, operation } in events.read() {
+    for event in events.read() {
         // The grid `operation` can be `Insert`, `Remove`, or `Update`
-        info!("entity={entity} grid_event={operation}");
+        info!("{}", event);
 
-        if let GridOperation::Update { from, to } = operation {
+        if let GridOperation::Update { from, to } = event.operation {
             // Here we are checking all the entities in neighboring grid cells
             // whenever the entity in question changes the cell it's in
             for neighbor_entity in grid.iter_neighbors(to) {
@@ -128,6 +128,7 @@ fn movement(
     position.translation += move_delta.extend(0.);
 }
 
+// Display current grid cell
 fn update_ui(
     player_query: Query<&Transform, With<Player>>,
     mut ui_query: Query<&mut Text, With<GridCellUI>>,

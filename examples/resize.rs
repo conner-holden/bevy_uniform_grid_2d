@@ -8,19 +8,22 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: bevy::window::WindowResolution::new(800., 800.),
-                title: "Dynamic Example".to_string(),
+                title: "Resize Example".to_string(),
                 present_mode: bevy::window::PresentMode::Immediate, // Disable VSync to show max FPS
                 ..default()
             }),
             ..default()
         }))
         // Add grid plugin. `debug` toggles grid lines (default is false).
+        //
         // The plugin is generic over `Player`. Anything with this component
         // will get added to the grid. This allows you to create multiple grids
         // for distinct purposes.
+        //
+        // Unless `dimensions()`, `spacing()`, or `anchor()` are called, a default
+        // 1x1 grid will be inserted into the world.
         .add_plugins(UniformGrid2dPlugin::<Player>::default().debug(true))
         .init_state::<AppState>()
-        .init_resource::<Grid<Player>>()
         .add_systems(Startup, setup)
         .add_systems(Update, shuffle_grid_size)
         .add_systems(Update, log_grid_events)
@@ -116,6 +119,7 @@ fn log_grid_events(
     }
 }
 
+// Display current grid cell
 fn update_ui(
     player_query: Query<&Transform, With<Player>>,
     mut ui_query: Query<&mut Text, With<GridCellUI>>,

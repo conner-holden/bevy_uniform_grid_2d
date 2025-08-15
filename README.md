@@ -24,16 +24,11 @@ struct MyMarker;
 ```
 
 ```rust
-// Add the plugin (debug is optional)
-.add_plugins(UniformGrid2dPlugin::<MyMarker>::default().debug(true))
-```
-
-```rust
-// Initialize the grid
-.insert_resource(
-    Grid::<MyMarker>::default()
-        .with_dimensions(UVec2::splat(30)) // Size of the grid in units of grid cells
-        .with_spacing(UVec2::splat(20)) // Size of each cell in units of integer world coordinates
+// Add the plugin to initialize grid (debug is optional)
+.add_plugins(UniformGrid2dPlugin::<MyMarker>::default()
+    .debug(true)
+    .dimensions(UVec2::splat(30)) // Size of the grid in units of grid cells
+    .spacing(UVec2::splat(20)), // Size of each cell in units of integer world coordinates
 )
 ```
 
@@ -64,11 +59,9 @@ cargo run --example minimal
   <summary>Code</summary>
 
 ```rust
-#![allow(unused_variables)]
 use bevy::prelude::*;
 use bevy_uniform_grid_2d::prelude::*;
 
-#[rustfmt::skip]
 fn main() {
     App::new()
         // Add default pluugins
@@ -82,17 +75,17 @@ fn main() {
             ..default()
         }))
         // Add grid plugin. `debug` toggles grid lines (default is false).
+        //
         // The plugin is generic over `Player`. Anything with this component
         // will get added to the grid. This allows you to create multiple grids
         // for distinct purposes.
-        .add_plugins(UniformGrid2dPlugin::<Player>::default().debug(true))
+        //
         // The below creates a square 600x600 grid with the bottom left at the origin
-        .insert_resource(
-            Grid::<Player>::default()
+        .add_plugins(UniformGrid2dPlugin::<Player>::default().debug(true)
                 // Size of the grid (units are grid cells)
-                .with_dimensions(UVec2::splat(30))
+                .dimensions(UVec2::splat(30))
                 // Size of each grid cell (units are integer world-space coordinates)
-                .with_spacing(UVec2::splat(20))
+                .spacing(UVec2::splat(20))
                 // You can anchor the grid somewhere specific (default is the origin)
                 // .anchor(Vec2::new(23.4, 10.1))
         )
@@ -155,11 +148,11 @@ fn handle_grid_changes(
     mut events: EventReader<GridEvent>,
 ) {
     // Events are emitted any time an entity enters, leaves, or changes which grid cell it's in
-    for &GridEvent { entity, operation } in events.read() {
+    for event in events.read() {
         // The grid `operation` can be `Insert`, `Remove`, or `Update`
-        info!("entity={entity} grid_event={operation}");
+        info!("{}", event);
 
-        if let GridOperation::Update { from, to } = operation {
+        if let GridOperation::Update { from, to } = event.operation {
             // Here we are checking all the entities in neighboring grid cells
             // whenever the entity in question changes the cell it's in
             for neighbor_entity in grid.iter_neighbors(to) {
@@ -194,6 +187,7 @@ fn movement(
     position.translation += move_delta.extend(0.);
 }
 
+// Display current grid cell
 fn update_ui(
     player_query: Query<&Transform, With<Player>>,
     mut ui_query: Query<&mut Text, With<GridCellUI>>,
@@ -240,6 +234,9 @@ const ON: Color = Color::Srgba(tailwind::GRAY_200);
 const OFF: Color = Color::Srgba(tailwind::RED_500);
 const OUT: Color = Color::Srgba(tailwind::GRAY_950);
 
+// Pre-allocated capacity for each grid cell (see plugin initialization)
+const N: usize = 8;
+
 fn main() {
     let mut app = App::new();
     // Setup window
@@ -255,13 +252,14 @@ fn main() {
     // Add performance UI
     .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
     .add_plugins(PerfUiPlugin)
-    // Add grid plugin. `Marker` is a marker component for opting entities into the grid.
-    .add_plugins(UniformGrid2dPlugin::<Marker, 5>::default().debug(true))
-    // `5` sets pre-allocated capacity of each grid cell. Default is 4.
-    .insert_resource(
-        Grid::<Marker, 5>::default()
-            .with_dimensions(UVec2::splat(30))
-            .with_spacing(UVec2::splat(20)),
+    .add_plugins(
+        // Add grid plugin. `Marker` is a marker component for opting entities into the grid.
+        // Our const `N` sets pre-allocated capacity of 8 for each grid cell. Default is 4.
+        UniformGrid2dPlugin::<Marker, N>::default()
+            .debug(true)
+            // The grid shape is defined using the plugin's builder methods.
+            .dimensions(UVec2::splat(30))
+            .spacing(UVec2::splat(20)),
     )
     // Change direction of sprites every 3 seconds
     .insert_resource(ChangeDirectionTimer(Timer::from_seconds(
@@ -284,7 +282,7 @@ struct Direction(Vec2);
 #[derive(Component)]
 struct Marker;
 
-fn setup(mut commands: Commands, grid: Res<Grid<Marker, 5>>) {
+fn setup(mut commands: Commands, grid: Res<Grid<Marker, N>>) {
     // Add performance diagnostics UI
     commands.spawn((
         PerfUiRoot::default(),
@@ -395,19 +393,22 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: bevy::window::WindowResolution::new(800., 800.),
-                title: "Dynamic Example".to_string(),
+                title: "Resize Example".to_string(),
                 present_mode: bevy::window::PresentMode::Immediate, // Disable VSync to show max FPS
                 ..default()
             }),
             ..default()
         }))
         // Add grid plugin. `debug` toggles grid lines (default is false).
+        //
         // The plugin is generic over `Player`. Anything with this component
         // will get added to the grid. This allows you to create multiple grids
         // for distinct purposes.
+        //
+        // Unless `dimensions()`, `spacing()`, or `anchor()` are called, a default
+        // 1x1 grid will be inserted into the world.
         .add_plugins(UniformGrid2dPlugin::<Player>::default().debug(true))
         .init_state::<AppState>()
-        .init_resource::<Grid<Player>>()
         .add_systems(Startup, setup)
         .add_systems(Update, shuffle_grid_size)
         .add_systems(Update, log_grid_events)
@@ -503,6 +504,7 @@ fn log_grid_events(
     }
 }
 
+// Display current grid cell
 fn update_ui(
     player_query: Query<&Transform, With<Player>>,
     mut ui_query: Query<&mut Text, With<GridCellUI>>,

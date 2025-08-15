@@ -31,13 +31,13 @@ pub(crate) fn update_grid<Marker: Component, const N: usize>(
         } else {
             for event in transform_grid_events.read() {
                 if let Some(dimensions) = event.dimensions {
-                    grid.dimensions = dimensions;
+                    grid.set_dimensions(dimensions);
                 };
                 if let Some(spacing) = event.spacing {
-                    grid.spacing = spacing;
+                    grid.set_spacing(spacing);
                 };
                 if let Some(anchor) = event.anchor {
-                    grid.anchor = anchor;
+                    grid.set_anchor(anchor);
                 };
             }
             grid.reset();
