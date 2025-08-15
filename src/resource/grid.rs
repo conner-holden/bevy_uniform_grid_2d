@@ -12,11 +12,11 @@ use crate::error::GridError;
 #[derive(Resource)]
 pub struct Grid<Marker: Component, const N: usize = 4> {
     /// Shape of the grid in cell units.
-    pub dimensions: UVec2,
+    pub(crate) dimensions: UVec2,
     /// Shape of each grid cell in world-space units.
-    pub spacing: UVec2,
+    pub(crate) spacing: UVec2,
     /// Point in world space to anchor the grid. Defaults to the origin.
-    pub anchor: Vec2,
+    pub(crate) anchor: Vec2,
     data: FxHashMap<UVec2, SmallVec<[Entity; N]>>,
     marker: PhantomData<Marker>,
 }
@@ -26,7 +26,7 @@ impl<Marker: Component, const N: usize> Default for Grid<Marker, N> {
         Self {
             dimensions: UVec2::ONE,
             spacing: UVec2::ONE,
-            anchor: Vec2::default(),
+            anchor: Vec2::ZERO,
             data: FxHashMap::default(),
             marker: PhantomData,
         }
@@ -34,40 +34,59 @@ impl<Marker: Component, const N: usize> Default for Grid<Marker, N> {
 }
 
 impl<Marker: Component, const N: usize> Grid<Marker, N> {
-    pub fn new(dimensions: UVec2, spacing: UVec2, anchor: Vec2) -> Self {
-        Self {
-            dimensions,
-            spacing,
-            anchor,
-            data: FxHashMap::default(),
-            marker: PhantomData,
-        }
+    /// Getter method for the grid's `dimensions`.
+    pub fn dimensions(&self) -> UVec2 {
+        self.dimensions
     }
 
-    /// Consruct a square grid with length and width equal to `size`.
-    pub fn splat(size: u32) -> Self {
-        Self {
-            dimensions: UVec2::splat(size),
-            ..Default::default()
-        }
+    /// Getter method for the grid's `spacing`.
+    pub fn spacing(&self) -> UVec2 {
+        self.spacing
+    }
+
+    /// Getter method for the grid's `anchor`.
+    pub fn anchor(&self) -> Vec2 {
+        self.anchor
     }
 
     /// Builder method to set the grid's `dimensions`.
-    pub fn dimensions(mut self, value: impl Into<UVec2>) -> Self {
+    pub fn with_dimensions(mut self, value: impl Into<UVec2>) -> Self {
         self.dimensions = value.into();
         self
     }
 
     /// Builder method to set the grid's `spacing`.
-    pub fn spacing(mut self, value: impl Into<UVec2>) -> Self {
+    pub fn with_spacing(mut self, value: impl Into<UVec2>) -> Self {
         self.spacing = value.into();
         self
     }
 
     /// Builder method to set the grid's `anchor`.
-    pub fn anchor(mut self, value: impl Into<Vec2>) -> Self {
+    pub fn with_anchor(mut self, value: impl Into<Vec2>) -> Self {
         self.anchor = value.into();
         self
+    }
+
+    /// Setter method for the grid's `dimensions`.
+    pub fn set_dimensions(&mut self, value: impl Into<UVec2>) -> &mut Self {
+        self.dimensions = value.into();
+        self
+    }
+
+    /// Setter method for the grid's `spacing`.
+    pub fn set_spacing(&mut self, value: impl Into<UVec2>) -> &mut Self {
+        self.spacing = value.into();
+        self
+    }
+
+    /// Setter method for the grid's `anchor`.
+    pub fn set_anchor(&mut self, value: impl Into<Vec2>) -> &mut Self {
+        self.anchor = value.into();
+        self
+    }
+
+    pub fn reset(&mut self) {
+        self.data = FxHashMap::default();
     }
 
     /// Insert an `entity` into the grid at `cell` coordinate. Updates
@@ -225,44 +244,30 @@ mod tests {
     struct TestMarker;
 
     #[test]
-    fn test_grid_creation() {
-        let grid = Grid::<TestMarker>::new(UVec2::new(10, 10), UVec2::new(32, 32), Vec2::ZERO);
-        assert_eq!(grid.dimensions, UVec2::new(10, 10));
-        assert_eq!(grid.spacing, UVec2::new(32, 32));
-        assert_eq!(grid.anchor, Vec2::ZERO);
-    }
-
-    #[test]
     fn test_grid_default() {
         let grid = Grid::<TestMarker>::default();
-        assert_eq!(grid.dimensions, UVec2::ONE);
-        assert_eq!(grid.spacing, UVec2::ONE);
-        assert_eq!(grid.anchor, Vec2::ZERO);
-    }
-
-    #[test]
-    fn test_grid_splat() {
-        let grid = Grid::<TestMarker>::splat(5);
-        assert_eq!(grid.dimensions, UVec2::splat(5));
-        assert_eq!(grid.spacing, UVec2::ONE);
-        assert_eq!(grid.anchor, Vec2::ZERO);
+        assert_eq!(grid.dimensions(), UVec2::ONE);
+        assert_eq!(grid.spacing(), UVec2::ONE);
+        assert_eq!(grid.anchor(), Vec2::ZERO);
     }
 
     #[test]
     fn test_grid_builders() {
         let grid = Grid::<TestMarker>::default()
-            .dimensions(UVec2::new(20, 15))
-            .spacing(UVec2::new(16, 16))
-            .anchor(Vec2::new(10.0, 5.0));
+            .with_dimensions(UVec2::new(20, 15))
+            .with_spacing(UVec2::new(16, 16))
+            .with_anchor(Vec2::new(10.0, 5.0));
 
-        assert_eq!(grid.dimensions, UVec2::new(20, 15));
-        assert_eq!(grid.spacing, UVec2::new(16, 16));
-        assert_eq!(grid.anchor, Vec2::new(10.0, 5.0));
+        assert_eq!(grid.dimensions(), UVec2::new(20, 15));
+        assert_eq!(grid.spacing(), UVec2::new(16, 16));
+        assert_eq!(grid.anchor(), Vec2::new(10.0, 5.0));
     }
 
     #[test]
     fn test_contains_cell() {
-        let grid = Grid::<TestMarker>::new(UVec2::new(10, 10), UVec2::new(32, 32), Vec2::ZERO);
+        let grid = Grid::<TestMarker>::default()
+            .with_dimensions(UVec2::new(10, 10))
+            .with_spacing(UVec2::new(32, 32));
 
         assert!(grid.contains_cell(UVec2::new(0, 0)));
         assert!(grid.contains_cell(UVec2::new(9, 9)));
@@ -275,7 +280,9 @@ mod tests {
 
     #[test]
     fn test_world_to_grid() {
-        let grid = Grid::<TestMarker>::new(UVec2::new(10, 10), UVec2::new(32, 32), Vec2::ZERO);
+        let grid = Grid::<TestMarker>::default()
+            .with_dimensions(UVec2::new(10, 10))
+            .with_spacing(UVec2::new(32, 32));
 
         assert_eq!(
             grid.world_to_grid(Vec3::new(0.0, 0.0, 0.0)).unwrap(),
@@ -301,11 +308,10 @@ mod tests {
 
     #[test]
     fn test_world_to_grid_with_anchor() {
-        let grid = Grid::<TestMarker>::new(
-            UVec2::new(10, 10),
-            UVec2::new(32, 32),
-            Vec2::new(16.0, 16.0),
-        );
+        let grid = Grid::<TestMarker>::default()
+            .with_dimensions(UVec2::new(10, 10))
+            .with_spacing(UVec2::new(32, 32))
+            .with_anchor(Vec2::new(16.0, 16.0));
 
         // With anchor at (16, 16), world position (16, 16) should be grid cell (0, 0)
         assert_eq!(
@@ -323,7 +329,9 @@ mod tests {
 
     #[test]
     fn test_insert_and_get() {
-        let mut grid = Grid::<TestMarker>::new(UVec2::new(10, 10), UVec2::new(32, 32), Vec2::ZERO);
+        let mut grid = Grid::<TestMarker>::default()
+            .with_dimensions(UVec2::new(10, 10))
+            .with_spacing(UVec2::new(32, 32));
         let entity = Entity::from_raw(42);
 
         // Insert entity at valid cell
@@ -343,7 +351,9 @@ mod tests {
 
     #[test]
     fn test_insert_at_world_position() {
-        let mut grid = Grid::<TestMarker>::new(UVec2::new(10, 10), UVec2::new(32, 32), Vec2::ZERO);
+        let mut grid = Grid::<TestMarker>::default()
+            .with_dimensions(UVec2::new(10, 10))
+            .with_spacing(UVec2::new(32, 32));
         let entity = Entity::from_raw(42);
 
         // Insert at world position
@@ -365,7 +375,9 @@ mod tests {
 
     #[test]
     fn test_remove() {
-        let mut grid = Grid::<TestMarker>::new(UVec2::new(10, 10), UVec2::new(32, 32), Vec2::ZERO);
+        let mut grid = Grid::<TestMarker>::default()
+            .with_dimensions(UVec2::new(10, 10))
+            .with_spacing(UVec2::new(32, 32));
         let entity = Entity::from_raw(42);
 
         // Insert and then remove
@@ -385,7 +397,9 @@ mod tests {
 
     #[test]
     fn test_update() {
-        let mut grid = Grid::<TestMarker>::new(UVec2::new(10, 10), UVec2::new(32, 32), Vec2::ZERO);
+        let mut grid = Grid::<TestMarker>::default()
+            .with_dimensions(UVec2::new(10, 10))
+            .with_spacing(UVec2::new(32, 32));
         let entity = Entity::from_raw(42);
 
         // Insert entity
@@ -420,7 +434,9 @@ mod tests {
 
     #[test]
     fn test_multiple_entities_same_cell() {
-        let mut grid = Grid::<TestMarker>::new(UVec2::new(10, 10), UVec2::new(32, 32), Vec2::ZERO);
+        let mut grid = Grid::<TestMarker>::default()
+            .with_dimensions(UVec2::new(10, 10))
+            .with_spacing(UVec2::new(32, 32));
         let entity1 = Entity::from_raw(42);
         let entity2 = Entity::from_raw(43);
         let entity3 = Entity::from_raw(44);
@@ -446,7 +462,9 @@ mod tests {
 
     #[test]
     fn test_grid_cell_iterator() {
-        let grid = Grid::<TestMarker>::new(UVec2::new(5, 5), UVec2::new(32, 32), Vec2::ZERO);
+        let grid = Grid::<TestMarker>::default()
+            .with_dimensions(UVec2::new(5, 5))
+            .with_spacing(UVec2::new(32, 32));
 
         // Test center cell (2,2) - should have 8 neighbors
         let neighbors: Vec<UVec2> = grid.get_cell_neighbors(UVec2::new(2, 2)).collect();
@@ -481,7 +499,9 @@ mod tests {
 
     #[test]
     fn test_iter_neighbors() {
-        let mut grid = Grid::<TestMarker>::new(UVec2::new(10, 10), UVec2::new(32, 32), Vec2::ZERO);
+        let mut grid = Grid::<TestMarker>::default()
+            .with_dimensions(UVec2::new(10, 10))
+            .with_spacing(UVec2::new(32, 32));
         let entity1 = Entity::from_raw(42);
         let entity2 = Entity::from_raw(43);
         let entity3 = Entity::from_raw(44);

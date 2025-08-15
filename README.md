@@ -32,8 +32,8 @@ struct MyMarker;
 // Initialize the grid
 .insert_resource(
     Grid::<MyMarker>::default()
-        .dimensions(UVec2::splat(30)) // Size of the grid in units of grid cells
-        .spacing(UVec2::splat(20)) // Size of each cell in units of integer world coordinates
+        .with_dimensions(UVec2::splat(30)) // Size of the grid in units of grid cells
+        .with_spacing(UVec2::splat(20)) // Size of each cell in units of integer world coordinates
 )
 ```
 
@@ -54,7 +54,7 @@ commands.spawn((
 ## Examples
 
 ### Minimal
-For the [minimal example](examples/minimal.rs), grid changes are logged. The player can move the sprite with WASD. Anytime the sprite enters or leaves the grid, or changes the grid cell it's in, the change will be logged to the console.
+For the [minimal example](examples/minimal.rs), the UI shows the current grid cell and all grid changes are logged. The player can move the sprite with WASD.
 
 ```sh
 cargo run --example minimal
@@ -64,16 +64,18 @@ cargo run --example minimal
   <summary>Code</summary>
 
 ```rust
+#![allow(unused_variables)]
 use bevy::prelude::*;
 use bevy_uniform_grid_2d::prelude::*;
 
+#[rustfmt::skip]
 fn main() {
     App::new()
         // Add default pluugins
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: bevy::window::WindowResolution::new(800., 800.),
-                title: "Hello World Example".to_string(),
+                title: "Minimal Example".to_string(),
                 present_mode: bevy::window::PresentMode::Immediate, // Disable VSync to show max FPS
                 ..default()
             }),
@@ -88,20 +90,24 @@ fn main() {
         .insert_resource(
             Grid::<Player>::default()
                 // Size of the grid (units are grid cells)
-                .dimensions(UVec2::splat(30))
+                .with_dimensions(UVec2::splat(30))
                 // Size of each grid cell (units are integer world-space coordinates)
-                .spacing(UVec2::splat(20))
+                .with_spacing(UVec2::splat(20))
                 // You can anchor the grid somewhere specific (default is the origin)
                 // .anchor(Vec2::new(23.4, 10.1))
         )
         .add_systems(Startup, setup)
         .add_systems(Update, handle_grid_changes)
         .add_systems(Update, movement)
+        .add_systems(Update, update_ui)
         .run();
 }
 
 #[derive(Component)]
 struct Player;
+
+#[derive(Component)]
+struct GridCellUI;
 
 fn setup(mut commands: Commands) {
     // Add a camera
@@ -114,11 +120,32 @@ fn setup(mut commands: Commands) {
             custom_size: Some(Vec2::splat(10.0)),
             ..default()
         },
-        // Transform is required
+        // Entities with a `Transform` are automatically added to the grid
         Transform::from_xyz(300., 300., 0.),
         // Player marker for movement handling
         Player,
     ));
+
+    // Add UI for grid cell display
+    commands
+        .spawn(Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(10.0),
+            left: Val::Px(10.0),
+            padding: UiRect::all(Val::Px(8.0)),
+            ..default()
+        })
+        .with_children(|parent| {
+            parent.spawn((
+                Text::new("Grid Cell: N/A"),
+                TextFont {
+                    font_size: 24.0,
+                    ..default()
+                },
+                TextColor(Color::WHITE),
+                GridCellUI,
+            ));
+        });
 }
 
 fn handle_grid_changes(
@@ -165,6 +192,23 @@ fn movement(
         move_delta *= t * 100.;
     }
     position.translation += move_delta.extend(0.);
+}
+
+fn update_ui(
+    player_query: Query<&Transform, With<Player>>,
+    mut ui_query: Query<&mut Text, With<GridCellUI>>,
+    grid: Res<Grid<Player>>,
+) {
+    if let (Ok(transform), Ok(mut text)) = (player_query.single(), ui_query.single_mut()) {
+        match grid.world_to_grid(transform.translation) {
+            Ok(cell) => {
+                **text = format!("Grid Cell: ({}, {})", cell.x, cell.y);
+            }
+            Err(_) => {
+                **text = "Grid Cell: Out of bounds".to_string();
+            }
+        }
+    }
 }
 ```
 </details>
@@ -216,8 +260,8 @@ fn main() {
     // `5` sets pre-allocated capacity of each grid cell. Default is 4.
     .insert_resource(
         Grid::<Marker, 5>::default()
-            .dimensions(UVec2::splat(30))
-            .spacing(UVec2::splat(20)),
+            .with_dimensions(UVec2::splat(30))
+            .with_spacing(UVec2::splat(20)),
     )
     // Change direction of sprites every 3 seconds
     .insert_resource(ChangeDirectionTimer(Timer::from_seconds(
@@ -257,8 +301,8 @@ fn setup(mut commands: Commands, grid: Res<Grid<Marker, 5>>) {
     // Spawn 1000 sprites randomly within (and possibly a little outside) the grid
     let mut rng = rand::thread_rng();
     let padding = 50.;
-    let max = (grid.dimensions * grid.spacing).as_vec2() + Vec2::splat(padding) + grid.anchor;
-    let min = Vec2::splat(-padding) + grid.anchor;
+    let max = (grid.dimensions() * grid.spacing()).as_vec2() + Vec2::splat(padding) + grid.anchor();
+    let min = Vec2::splat(-padding) + grid.anchor();
 
     let entity_count = 1000;
     let entity_size = Vec2::splat(5.);
@@ -323,6 +367,154 @@ fn update_color(mut sprites: Query<&mut Sprite>, mut events: EventReader<GridEve
             }
             GridOperation::Remove { .. } => {
                 sprite.color = OUT;
+            }
+        }
+    }
+}
+```
+</details>
+
+### Grid Resizing
+For the [resize example](examples/resize.rs), the UI shows the current grid cell and all grid changes are logged. Press `<SPACEBAR>` to shuffle the grid size.
+
+```sh
+cargo run --example resize
+```
+
+<details>
+  <summary>Code</summary>
+
+```rust
+use bevy::prelude::*;
+use bevy_uniform_grid_2d::prelude::*;
+use rand::Rng;
+
+fn main() {
+    App::new()
+        // Add default pluugins
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                resolution: bevy::window::WindowResolution::new(800., 800.),
+                title: "Dynamic Example".to_string(),
+                present_mode: bevy::window::PresentMode::Immediate, // Disable VSync to show max FPS
+                ..default()
+            }),
+            ..default()
+        }))
+        // Add grid plugin. `debug` toggles grid lines (default is false).
+        // The plugin is generic over `Player`. Anything with this component
+        // will get added to the grid. This allows you to create multiple grids
+        // for distinct purposes.
+        .add_plugins(UniformGrid2dPlugin::<Player>::default().debug(true))
+        .init_state::<AppState>()
+        .init_resource::<Grid<Player>>()
+        .add_systems(Startup, setup)
+        .add_systems(Update, shuffle_grid_size)
+        .add_systems(Update, log_grid_events)
+        .add_systems(Update, update_ui)
+        .run();
+}
+
+#[derive(Component)]
+struct Player;
+
+#[derive(Component)]
+struct GridCellUI;
+
+#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
+pub enum AppState {
+    #[default]
+    Loading,
+    Ready,
+}
+
+fn setup(mut commands: Commands, mut app_state: ResMut<NextState<AppState>>) {
+    // Add a camera
+    commands.spawn((Camera2d, Transform::from_xyz(300., 300., 0.)));
+
+    commands.spawn((
+        // Add a sprite so we can visualize the entity
+        Sprite {
+            color: Color::WHITE,
+            custom_size: Some(Vec2::splat(10.0)),
+            ..default()
+        },
+        // Entities with a `Transform` are automatically added to the grid
+        Transform::from_xyz(200., 200., 0.),
+        // Player marker for movement handling
+        Player,
+    ));
+
+    // Add UI for grid cell display
+    commands
+        .spawn(Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(10.0),
+            left: Val::Px(10.0),
+            padding: UiRect::all(Val::Px(8.0)),
+            ..default()
+        })
+        .with_children(|parent| {
+            parent.spawn((
+                Text::new("Grid Cell: N/A"),
+                TextFont {
+                    font_size: 24.0,
+                    ..default()
+                },
+                TextColor(Color::WHITE),
+                GridCellUI,
+            ));
+        });
+
+    app_state.set(AppState::Ready);
+}
+
+fn shuffle_grid_size(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    app_state: Res<State<AppState>>,
+    mut grid: EventWriter<TransformGridEvent<Player>>,
+) {
+    // If the user presses the spacebar or the app state just changed to ready,
+    // change the grid to a random size
+    if keyboard.just_pressed(KeyCode::Space)
+        || (app_state.is_changed() && *app_state.get() == AppState::Ready)
+    {
+        let mut rng = rand::thread_rng();
+        grid.write(
+            TransformGridEvent::default()
+                .with_dimensions(UVec2::splat(rng.gen_range(10..20)))
+                .with_spacing(UVec2::splat(rng.gen_range(15..25))),
+        );
+    }
+}
+
+fn log_grid_events(
+    mut grid_events: EventReader<GridEvent>,
+    mut transform_grid_events: EventReader<TransformGridEvent<Player>>,
+) {
+    // Grid events are emitted any time an entity enters, leaves, or changes which grid cell it's in
+    for event in grid_events.read() {
+        // The grid `operation` can be `Insert`, `Remove`, or `Update`
+        info!("{}", event);
+    }
+
+    for event in transform_grid_events.read() {
+        info!("{}", event);
+    }
+}
+
+fn update_ui(
+    player_query: Query<&Transform, With<Player>>,
+    mut ui_query: Query<&mut Text, With<GridCellUI>>,
+    grid: Res<Grid<Player>>,
+) {
+    if let (Ok(transform), Ok(mut text)) = (player_query.single(), ui_query.single_mut()) {
+        match grid.world_to_grid(transform.translation) {
+            Ok(cell) => {
+                **text = format!("Grid Cell: ({}, {})", cell.x, cell.y);
+            }
+            Err(_) => {
+                **text = "Grid Cell: Out of bounds".to_string();
             }
         }
     }

@@ -2,9 +2,9 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
-        event::EventWriter,
+        event::{EventReader, EventWriter},
         query::{Changed, With},
-        system::{Commands, Query, ResMut},
+        system::{Commands, Query, QueryLens, ResMut},
     },
     transform::components::Transform,
 };
@@ -12,36 +12,53 @@ use bevy::{
 use crate::{
     component::GridCell,
     error::GridError,
-    event::{GridEvent, GridOperation},
+    event::{GridEvent, GridOperation, TransformGridEvent},
     resource::Grid,
 };
 
 pub(crate) fn update_grid<Marker: Component, const N: usize>(
     mut commands: Commands,
     mut grid: ResMut<Grid<Marker, N>>,
-    mut grid_elements: Query<
-        (Entity, &Transform, Option<&mut GridCell>),
-        (Changed<Transform>, With<Marker>),
-    >,
-    mut events: EventWriter<GridEvent>,
+    mut transforms: Query<&Transform, With<Marker>>,
+    mut changed_transforms: Query<&Transform, (Changed<Transform>, With<Marker>)>,
+    mut grid_elements: Query<(Entity, Option<&mut GridCell>), With<Marker>>,
+    mut grid_events: EventWriter<GridEvent>,
+    mut transform_grid_events: EventReader<TransformGridEvent<Marker, N>>,
 ) {
-    for (entity, transform, current_cell) in grid_elements.iter_mut() {
+    let mut grid_elements: QueryLens<(Entity, &Transform, Option<&mut GridCell>), With<Marker>> =
+        if transform_grid_events.is_empty() {
+            changed_transforms.join_filtered(&mut grid_elements)
+        } else {
+            for event in transform_grid_events.read() {
+                if let Some(dimensions) = event.dimensions {
+                    grid.dimensions = dimensions;
+                };
+                if let Some(spacing) = event.spacing {
+                    grid.spacing = spacing;
+                };
+                if let Some(anchor) = event.anchor {
+                    grid.anchor = anchor;
+                };
+            }
+            grid.reset();
+            transforms.join_filtered(&mut grid_elements)
+        };
+    for (entity, transform, current_cell) in grid_elements.query() {
         match grid.world_to_grid(transform.translation) {
             Ok(new_cell) => {
                 let Some(mut current_cell) = current_cell else {
                     if grid.insert(entity, new_cell).is_ok() {
                         commands.entity(entity).insert(GridCell(new_cell));
-                        events.write(GridEvent {
+                        grid_events.write(GridEvent {
                             entity,
                             operation: GridOperation::Insert { to: new_cell },
                         });
                     }
                     continue;
                 };
-                if new_cell != current_cell.0
-                    && grid.update(entity, current_cell.0, new_cell).is_ok()
-                {
-                    events.write(GridEvent {
+                if new_cell != current_cell.0 {
+                    let _ = grid.update(entity, current_cell.0, new_cell);
+                    grid_events.write(GridEvent {
                         entity,
                         operation: GridOperation::Update {
                             from: current_cell.0,
@@ -52,11 +69,10 @@ pub(crate) fn update_grid<Marker: Component, const N: usize>(
                 };
             }
             Err(GridError::OutOfBounds(_)) => {
-                if let Some(current_cell) = current_cell
-                    && grid.remove(entity, current_cell.0).is_ok()
-                {
+                if let Some(current_cell) = current_cell {
+                    let _ = grid.remove(entity, current_cell.0);
                     commands.entity(entity).remove::<GridCell>();
-                    events.write(GridEvent {
+                    grid_events.write(GridEvent {
                         entity,
                         operation: GridOperation::Remove {
                             from: current_cell.0,

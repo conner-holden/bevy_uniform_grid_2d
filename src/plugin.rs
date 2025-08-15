@@ -6,7 +6,7 @@ use bevy::{
 };
 
 use crate::{
-    event::GridEvent,
+    event::{GridEvent, TransformGridEvent},
     system::{update_debug_grid_lines, update_grid},
 };
 
@@ -34,6 +34,7 @@ impl<Marker: Component, const N: usize> Default for UniformGrid2dPlugin<Marker, 
 impl<Marker: Component, const N: usize> Plugin for UniformGrid2dPlugin<Marker, N> {
     fn build(&self, app: &mut bevy::app::App) {
         app.add_event::<GridEvent>()
+            .add_event::<TransformGridEvent<Marker, N>>()
             .add_systems(Update, update_grid::<Marker, N>);
         if self.debug {
             app.add_systems(Update, update_debug_grid_lines::<Marker, N>);

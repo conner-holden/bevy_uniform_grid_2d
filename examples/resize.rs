@@ -1,15 +1,14 @@
-#![allow(unused_variables)]
 use bevy::prelude::*;
 use bevy_uniform_grid_2d::prelude::*;
+use rand::Rng;
 
-#[rustfmt::skip]
 fn main() {
     App::new()
         // Add default pluugins
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: bevy::window::WindowResolution::new(800., 800.),
-                title: "Minimal Example".to_string(),
+                title: "Dynamic Example".to_string(),
                 present_mode: bevy::window::PresentMode::Immediate, // Disable VSync to show max FPS
                 ..default()
             }),
@@ -20,19 +19,11 @@ fn main() {
         // will get added to the grid. This allows you to create multiple grids
         // for distinct purposes.
         .add_plugins(UniformGrid2dPlugin::<Player>::default().debug(true))
-        // The below creates a square 600x600 grid with the bottom left at the origin
-        .insert_resource(
-            Grid::<Player>::default()
-                // Size of the grid (units are grid cells)
-                .with_dimensions(UVec2::splat(30))
-                // Size of each grid cell (units are integer world-space coordinates)
-                .with_spacing(UVec2::splat(20))
-                // You can anchor the grid somewhere specific (default is the origin)
-                // .anchor(Vec2::new(23.4, 10.1))
-        )
+        .init_state::<AppState>()
+        .init_resource::<Grid<Player>>()
         .add_systems(Startup, setup)
-        .add_systems(Update, handle_grid_changes)
-        .add_systems(Update, movement)
+        .add_systems(Update, shuffle_grid_size)
+        .add_systems(Update, log_grid_events)
         .add_systems(Update, update_ui)
         .run();
 }
@@ -43,7 +34,14 @@ struct Player;
 #[derive(Component)]
 struct GridCellUI;
 
-fn setup(mut commands: Commands) {
+#[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
+pub enum AppState {
+    #[default]
+    Loading,
+    Ready,
+}
+
+fn setup(mut commands: Commands, mut app_state: ResMut<NextState<AppState>>) {
     // Add a camera
     commands.spawn((Camera2d, Transform::from_xyz(300., 300., 0.)));
 
@@ -55,7 +53,7 @@ fn setup(mut commands: Commands) {
             ..default()
         },
         // Entities with a `Transform` are automatically added to the grid
-        Transform::from_xyz(300., 300., 0.),
+        Transform::from_xyz(200., 200., 0.),
         // Player marker for movement handling
         Player,
     ));
@@ -80,52 +78,42 @@ fn setup(mut commands: Commands) {
                 GridCellUI,
             ));
         });
+
+    app_state.set(AppState::Ready);
 }
 
-fn handle_grid_changes(
-    grid: Res<Grid<Player>>,
-    // The current grid cell of an entity is synced to `GridCell`
-    grid_cells: Query<&GridCell, With<Player>>,
-    mut events: EventReader<GridEvent>,
-) {
-    // Events are emitted any time an entity enters, leaves, or changes which grid cell it's in
-    for &GridEvent { entity, operation } in events.read() {
-        // The grid `operation` can be `Insert`, `Remove`, or `Update`
-        info!("entity={entity} grid_event={operation}");
-
-        if let GridOperation::Update { from, to } = operation {
-            // Here we are checking all the entities in neighboring grid cells
-            // whenever the entity in question changes the cell it's in
-            for neighbor_entity in grid.iter_neighbors(to) {
-                // ... attack neighbors?
-            }
-        }
-    }
-}
-
-// Move with WASD
-fn movement(
-    mut transform: Query<&mut Transform, With<Player>>,
+fn shuffle_grid_size(
     keyboard: Res<ButtonInput<KeyCode>>,
-    time: Res<Time>,
+    app_state: Res<State<AppState>>,
+    mut grid: EventWriter<TransformGridEvent<Player>>,
 ) {
-    let mut position = transform.single_mut().unwrap();
-
-    let t = time.delta_secs();
-    let up = keyboard.any_pressed([KeyCode::KeyW]);
-    let down = keyboard.any_pressed([KeyCode::KeyS]);
-    let left = keyboard.any_pressed([KeyCode::KeyA]);
-    let right = keyboard.any_pressed([KeyCode::KeyD]);
-
-    let x = -(left as i8) + right as i8;
-    let y = -(down as i8) + up as i8;
-
-    let mut move_delta = Vec2::new(x as f32, y as f32);
-    if move_delta != Vec2::ZERO {
-        move_delta /= move_delta.length();
-        move_delta *= t * 100.;
+    // If the user presses the spacebar or the app state just changed to ready,
+    // change the grid to a random size
+    if keyboard.just_pressed(KeyCode::Space)
+        || (app_state.is_changed() && *app_state.get() == AppState::Ready)
+    {
+        let mut rng = rand::thread_rng();
+        grid.write(
+            TransformGridEvent::default()
+                .with_dimensions(UVec2::splat(rng.gen_range(10..20)))
+                .with_spacing(UVec2::splat(rng.gen_range(15..25))),
+        );
     }
-    position.translation += move_delta.extend(0.);
+}
+
+fn log_grid_events(
+    mut grid_events: EventReader<GridEvent>,
+    mut transform_grid_events: EventReader<TransformGridEvent<Player>>,
+) {
+    // Grid events are emitted any time an entity enters, leaves, or changes which grid cell it's in
+    for event in grid_events.read() {
+        // The grid `operation` can be `Insert`, `Remove`, or `Update`
+        info!("{}", event);
+    }
+
+    for event in transform_grid_events.read() {
+        info!("{}", event);
+    }
 }
 
 fn update_ui(

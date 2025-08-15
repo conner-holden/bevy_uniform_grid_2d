@@ -5,7 +5,7 @@ use bevy::{
     MinimalPlugins,
     app::{App, Startup, Update},
     ecs::{component::Component, entity::Entity},
-    math::{UVec2, Vec2, Vec3},
+    math::{UVec2, Vec3},
     prelude::{Commands, Transform},
 };
 use bevy_uniform_grid_2d::{plugin::UniformGrid2dPlugin, resource::Grid};
@@ -38,11 +38,11 @@ fn grid_update_benchmark(c: &mut Criterion) {
         let mut app = App::new();
         app.add_plugins(MinimalPlugins)
             .add_plugins(UniformGrid2dPlugin::<TestMarker>::default())
-            .insert_resource(Grid::<TestMarker>::new(
-                UVec2::splat(GRID_SIZE),
-                UVec2::splat(CELL_SIZE),
-                Vec2::ZERO,
-            ))
+            .insert_resource(
+                Grid::<TestMarker>::default()
+                    .with_dimensions(UVec2::splat(GRID_SIZE))
+                    .with_spacing(UVec2::splat(CELL_SIZE)),
+            )
             .add_systems(Startup, spawn_moving_entities)
             .add_systems(Update, move_entities);
 
@@ -176,31 +176,31 @@ fn move_entities_no_marker(entities: bevy::ecs::system::Query<(&mut Transform, &
 // Helper functions for micro-benchmarks
 fn create_empty_grid(cell_capacity: usize) -> Box<dyn GridTrait> {
     match cell_capacity {
-        1 => Box::new(Grid::<TestMarker, 1>::new(
-            UVec2::splat(GRID_SIZE),
-            UVec2::splat(CELL_SIZE),
-            Vec2::ZERO,
-        )),
-        2 => Box::new(Grid::<TestMarker, 2>::new(
-            UVec2::splat(GRID_SIZE),
-            UVec2::splat(CELL_SIZE),
-            Vec2::ZERO,
-        )),
-        4 => Box::new(Grid::<TestMarker, 4>::new(
-            UVec2::splat(GRID_SIZE),
-            UVec2::splat(CELL_SIZE),
-            Vec2::ZERO,
-        )),
-        8 => Box::new(Grid::<TestMarker, 8>::new(
-            UVec2::splat(GRID_SIZE),
-            UVec2::splat(CELL_SIZE),
-            Vec2::ZERO,
-        )),
-        16 => Box::new(Grid::<TestMarker, 16>::new(
-            UVec2::splat(GRID_SIZE),
-            UVec2::splat(CELL_SIZE),
-            Vec2::ZERO,
-        )),
+        1 => Box::new(
+            Grid::<TestMarker, 1>::default()
+                .with_dimensions(UVec2::splat(GRID_SIZE))
+                .with_spacing(UVec2::splat(CELL_SIZE)),
+        ),
+        2 => Box::new(
+            Grid::<TestMarker, 2>::default()
+                .with_dimensions(UVec2::splat(GRID_SIZE))
+                .with_spacing(UVec2::splat(CELL_SIZE)),
+        ),
+        4 => Box::new(
+            Grid::<TestMarker, 4>::default()
+                .with_dimensions(UVec2::splat(GRID_SIZE))
+                .with_spacing(UVec2::splat(CELL_SIZE)),
+        ),
+        8 => Box::new(
+            Grid::<TestMarker, 8>::default()
+                .with_dimensions(UVec2::splat(GRID_SIZE))
+                .with_spacing(UVec2::splat(CELL_SIZE)),
+        ),
+        16 => Box::new(
+            Grid::<TestMarker, 16>::default()
+                .with_dimensions(UVec2::splat(GRID_SIZE))
+                .with_spacing(UVec2::splat(CELL_SIZE)),
+        ),
         _ => panic!("Unsupported cell capacity"),
     }
 }

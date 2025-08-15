@@ -33,8 +33,8 @@ fn main() {
     // `5` sets pre-allocated capacity of each grid cell. Default is 4.
     .insert_resource(
         Grid::<Marker, 5>::default()
-            .dimensions(UVec2::splat(30))
-            .spacing(UVec2::splat(20)),
+            .with_dimensions(UVec2::splat(30))
+            .with_spacing(UVec2::splat(20)),
     )
     // Change direction of sprites every 3 seconds
     .insert_resource(ChangeDirectionTimer(Timer::from_seconds(
@@ -74,8 +74,8 @@ fn setup(mut commands: Commands, grid: Res<Grid<Marker, 5>>) {
     // Spawn 1000 sprites randomly within (and possibly a little outside) the grid
     let mut rng = rand::thread_rng();
     let padding = 50.;
-    let max = (grid.dimensions * grid.spacing).as_vec2() + Vec2::splat(padding) + grid.anchor;
-    let min = Vec2::splat(-padding) + grid.anchor;
+    let max = (grid.dimensions() * grid.spacing()).as_vec2() + Vec2::splat(padding) + grid.anchor();
+    let min = Vec2::splat(-padding) + grid.anchor();
 
     let entity_count = 1000;
     let entity_size = Vec2::splat(5.);

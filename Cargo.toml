@@ -29,6 +29,9 @@ name = "minimal"
 [[example]]
 name = "stress_test"
 
+[[example]]
+name = "resize"
+
 [[bench]]
 name = "benchmarks"
 harness = false
