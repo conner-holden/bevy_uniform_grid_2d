@@ -14,7 +14,7 @@ use rand::Rng;
 
 const ENTITY_COUNT: usize = 10000;
 const GRID_SIZE: u32 = 100;
-const CELL_SIZE: u32 = 32;
+const CELL_SIZE: f32 = 32.;
 
 criterion_group!(
     benches,
@@ -38,11 +38,11 @@ fn grid_update_benchmark(c: &mut Criterion) {
         let mut app = App::new();
         app.add_plugins(MinimalPlugins)
             .add_plugins(UniformGrid2dPlugin::<TestMarker>::default())
-            .insert_resource(Grid::<TestMarker>::new(
-                UVec2::splat(GRID_SIZE),
-                UVec2::splat(CELL_SIZE),
-                Vec2::ZERO,
-            ))
+            .insert_resource(
+                Grid::<TestMarker>::default()
+                    .with_dimensions(UVec2::splat(GRID_SIZE))
+                    .with_spacing(Vec2::splat(CELL_SIZE)),
+            )
             .add_systems(Startup, spawn_moving_entities)
             .add_systems(Update, move_entities);
 
@@ -114,7 +114,7 @@ fn grid_insertion_benchmark(c: &mut Criterion) {
 
 fn spawn_moving_entities(mut commands: Commands) {
     let mut rng = rand::thread_rng();
-    let world_size = (GRID_SIZE * CELL_SIZE) as f32;
+    let world_size = GRID_SIZE as f32 * CELL_SIZE;
 
     for _ in 0..ENTITY_COUNT {
         let position = Vec3::new(
@@ -134,7 +134,7 @@ fn spawn_moving_entities(mut commands: Commands) {
 
 fn spawn_moving_entities_no_marker(mut commands: Commands) {
     let mut rng = rand::thread_rng();
-    let world_size = (GRID_SIZE * CELL_SIZE) as f32;
+    let world_size = GRID_SIZE as f32 * CELL_SIZE;
 
     for _ in 0..ENTITY_COUNT {
         let position = Vec3::new(
@@ -154,7 +154,7 @@ fn move_entities(mut entities: bevy::ecs::system::Query<(&mut Transform, &Veloci
         transform.translation += velocity.0 * dt;
 
         // Wrap around world bounds
-        let world_size = (GRID_SIZE * CELL_SIZE) as f32;
+        let world_size = GRID_SIZE as f32 * CELL_SIZE;
         if transform.translation.x < 0.0 {
             transform.translation.x = world_size;
         } else if transform.translation.x > world_size {
@@ -176,31 +176,31 @@ fn move_entities_no_marker(entities: bevy::ecs::system::Query<(&mut Transform, &
 // Helper functions for micro-benchmarks
 fn create_empty_grid(cell_capacity: usize) -> Box<dyn GridTrait> {
     match cell_capacity {
-        1 => Box::new(Grid::<TestMarker, 1>::new(
-            UVec2::splat(GRID_SIZE),
-            UVec2::splat(CELL_SIZE),
-            Vec2::ZERO,
-        )),
-        2 => Box::new(Grid::<TestMarker, 2>::new(
-            UVec2::splat(GRID_SIZE),
-            UVec2::splat(CELL_SIZE),
-            Vec2::ZERO,
-        )),
-        4 => Box::new(Grid::<TestMarker, 4>::new(
-            UVec2::splat(GRID_SIZE),
-            UVec2::splat(CELL_SIZE),
-            Vec2::ZERO,
-        )),
-        8 => Box::new(Grid::<TestMarker, 8>::new(
-            UVec2::splat(GRID_SIZE),
-            UVec2::splat(CELL_SIZE),
-            Vec2::ZERO,
-        )),
-        16 => Box::new(Grid::<TestMarker, 16>::new(
-            UVec2::splat(GRID_SIZE),
-            UVec2::splat(CELL_SIZE),
-            Vec2::ZERO,
-        )),
+        1 => Box::new(
+            Grid::<TestMarker, 1>::default()
+                .with_dimensions(UVec2::splat(GRID_SIZE))
+                .with_spacing(Vec2::splat(CELL_SIZE)),
+        ),
+        2 => Box::new(
+            Grid::<TestMarker, 2>::default()
+                .with_dimensions(UVec2::splat(GRID_SIZE))
+                .with_spacing(Vec2::splat(CELL_SIZE)),
+        ),
+        4 => Box::new(
+            Grid::<TestMarker, 4>::default()
+                .with_dimensions(UVec2::splat(GRID_SIZE))
+                .with_spacing(Vec2::splat(CELL_SIZE)),
+        ),
+        8 => Box::new(
+            Grid::<TestMarker, 8>::default()
+                .with_dimensions(UVec2::splat(GRID_SIZE))
+                .with_spacing(Vec2::splat(CELL_SIZE)),
+        ),
+        16 => Box::new(
+            Grid::<TestMarker, 16>::default()
+                .with_dimensions(UVec2::splat(GRID_SIZE))
+                .with_spacing(Vec2::splat(CELL_SIZE)),
+        ),
         _ => panic!("Unsupported cell capacity"),
     }
 }

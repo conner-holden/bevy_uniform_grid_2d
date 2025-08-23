@@ -1,14 +1,23 @@
-use bevy::{prelude::*, window::WindowResolution};
+use bevy::prelude::*;
 use bevy_uniform_grid_2d::prelude::*;
+use iyes_perf_ui::prelude::*;
 use rand::Rng;
+
+// Colors that are toggled as the sprite moves inside (and outside) the grid
+const ON: Color = Color::rgb(0.85, 0.85, 0.85);
+const OFF: Color = Color::rgb(0.94, 0.31, 0.25);
+const OUT: Color = Color::rgb(0.05, 0.05, 0.05);
+
+// Pre-allocated capacity for each grid cell (see plugin initialization)
+const N: usize = 8;
 
 fn main() {
     let mut app = App::new();
     // Setup window
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
-            resolution: WindowResolution::new(800., 800.),
-            title: "Many Moving Entities Example".to_string(),
+            resolution: (800., 800.).into(),
+            title: "Stress Test Example".to_string(),
             present_mode: bevy::window::PresentMode::Immediate, // Disable VSync to show max FPS
             ..default()
         }),
@@ -16,12 +25,15 @@ fn main() {
     }))
     // Add performance UI
     .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
-    // Add grid plugin. `Marker` is a marker component for opting entities into the grid.
-    .add_plugins(UniformGrid2dPlugin::<Marker>::default().debug(true))
-    .insert_resource(
-        Grid::<Marker>::default()
+    .add_plugins(PerfUiPlugin)
+    .add_plugins(
+        // Add grid plugin. `Marker` is a marker component for opting entities into the grid.
+        // Our const `N` sets pre-allocated capacity of 8 for each grid cell. Default is 4.
+        UniformGrid2dPlugin::<Marker, N>::default()
+            .debug(true)
+            // The grid shape is defined using the plugin's builder methods.
             .dimensions(UVec2::splat(30))
-            .spacing(UVec2::splat(20)),
+            .spacing(Vec2::splat(20.)),
     )
     // Change direction of sprites every 3 seconds
     .insert_resource(ChangeDirectionTimer(Timer::from_seconds(
@@ -44,12 +56,15 @@ struct Direction(Vec2);
 #[derive(Component)]
 struct Marker;
 
-fn setup(mut commands: Commands, grid: Res<Grid<Marker>>) {
+fn setup(mut commands: Commands, grid: Res<Grid<Marker, N>>) {
+    // Add performance diagnostics UI
+    commands.spawn(PerfUiCompleteBundle::default());
+
     // Spawn 1000 sprites randomly within (and possibly a little outside) the grid
     let mut rng = rand::thread_rng();
     let padding = 50.;
-    let max = (grid.dimensions * grid.spacing).as_vec2() + Vec2::splat(padding) + grid.anchor;
-    let min = Vec2::splat(-padding) + grid.anchor;
+    let max = grid.dimensions().as_vec2() * grid.spacing() + Vec2::splat(padding) + grid.anchor();
+    let min = Vec2::splat(-padding) + grid.anchor();
 
     let entity_count = 1000;
     let entity_size = Vec2::splat(5.);
@@ -60,7 +75,7 @@ fn setup(mut commands: Commands, grid: Res<Grid<Marker>>) {
         commands.spawn((
             SpriteBundle {
                 sprite: Sprite {
-                    color: Color::rgb_u8(0, 0, 0),
+                    color: OUT,
                     custom_size: Some(entity_size),
                     ..default()
                 },
@@ -108,22 +123,18 @@ fn update_color(mut sprites: Query<&mut Sprite>, mut events: EventReader<GridEve
         };
         match operation {
             GridOperation::Update { .. } => {
-                if sprite.color == Color::rgb_u8(220, 220, 220) {
-                    sprite.color = Color::rgb_u8(200, 0, 0);
+                if sprite.color == ON {
+                    sprite.color = OFF;
                 } else {
-                    sprite.color = Color::rgb_u8(220, 220, 220);
+                    sprite.color = ON;
                 }
             }
             GridOperation::Insert { .. } => {
                 let mut rng = rand::thread_rng();
-                sprite.color = if rng.gen_bool(0.5) {
-                    Color::rgb_u8(200, 0, 0)
-                } else {
-                    Color::rgb_u8(220, 220, 220)
-                };
+                sprite.color = if rng.gen_bool(0.5) { OFF } else { ON };
             }
             GridOperation::Remove { .. } => {
-                sprite.color = Color::rgb_u8(0, 0, 0);
+                sprite.color = OUT;
             }
         }
     }

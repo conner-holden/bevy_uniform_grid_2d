@@ -2,7 +2,7 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
-        event::EventWriter,
+        event::{EventReader, EventWriter},
         query::{Changed, With},
         system::{Commands, Query, ResMut},
     },
@@ -12,54 +12,76 @@ use bevy::{
 use crate::{
     component::GridCell,
     error::GridError,
-    event::{GridEvent, GridOperation},
+    event::{GridEvent, GridOperation, TransformGridEvent},
     resource::Grid,
 };
 
-pub(crate) fn update_grid<Marker: Component>(
+pub(crate) fn update_grid<Marker: Component, const N: usize>(
     mut commands: Commands,
-    mut grid: ResMut<Grid<Marker>>,
-    mut grid_elements: Query<
-        (Entity, &Transform, Option<&mut GridCell>),
-        (Changed<Transform>, With<Marker>),
-    >,
-    mut events: EventWriter<GridEvent>,
+    mut grid: ResMut<Grid<Marker, N>>,
+    mut grid_elements: Query<(Entity, &Transform, Option<&mut GridCell<Marker, N>>), With<Marker>>,
+    changed_transforms: Query<Entity, (Changed<Transform>, With<Marker>)>,
+    mut grid_events: EventWriter<GridEvent>,
+    mut transform_grid_events: EventReader<TransformGridEvent<Marker, N>>,
 ) {
+    // Check if we need to rebuild the entire grid due to transform events
+    let rebuild_grid = !transform_grid_events.is_empty();
+    
+    if rebuild_grid {
+        for event in transform_grid_events.read() {
+            if let Some(dimensions) = event.dimensions {
+                grid.set_dimensions(dimensions);
+            };
+            if let Some(spacing) = event.spacing {
+                grid.set_spacing(spacing);
+            };
+            if let Some(anchor) = event.anchor {
+                grid.set_anchor(anchor);
+            };
+        }
+        grid.reset();
+    }
+
+    // Process either all transforms (if rebuilding) or just changed ones
     for (entity, transform, current_cell) in grid_elements.iter_mut() {
+        // Skip unchanged entities if not rebuilding
+        if !rebuild_grid && changed_transforms.get(entity).is_err() {
+            continue;
+        }
         match grid.world_to_grid(transform.translation) {
             Ok(new_cell) => {
                 let Some(mut current_cell) = current_cell else {
                     if grid.insert(entity, new_cell).is_ok() {
-                        commands.entity(entity).insert(GridCell(new_cell));
-                        events.send(GridEvent {
+                        commands
+                            .entity(entity)
+                            .insert(GridCell::<Marker, N>::new(new_cell));
+                        grid_events.send(GridEvent {
                             entity,
                             operation: GridOperation::Insert { to: new_cell },
                         });
                     }
                     continue;
                 };
-                if new_cell != current_cell.0
-                    && grid.update(entity, current_cell.0, new_cell).is_ok()
-                {
-                    events.send(GridEvent {
+                if new_cell != current_cell.inner {
+                    let _ = grid.update(entity, current_cell.inner, new_cell);
+                    grid_events.send(GridEvent {
                         entity,
                         operation: GridOperation::Update {
-                            from: current_cell.0,
+                            from: current_cell.inner,
                             to: new_cell,
                         },
                     });
-                    current_cell.0 = new_cell;
+                    current_cell.inner = new_cell;
                 };
             }
             Err(GridError::OutOfBounds(_)) => {
-                if let Some(current_cell) = current_cell
-                    && grid.remove(entity, current_cell.0).is_ok()
-                {
-                    commands.entity(entity).remove::<GridCell>();
-                    events.send(GridEvent {
+                if let Some(current_cell) = current_cell {
+                    let _ = grid.remove(entity, current_cell.inner);
+                    commands.entity(entity).remove::<GridCell<Marker, N>>();
+                    grid_events.send(GridEvent {
                         entity,
                         operation: GridOperation::Remove {
-                            from: current_cell.0,
+                            from: current_cell.inner,
                         },
                     });
                 }
