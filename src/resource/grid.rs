@@ -129,10 +129,17 @@ impl<Marker: Component, const N: usize> Grid<Marker, N> {
             .map_or([].iter().copied(), |v| v.iter().copied())
     }
 
+    /// Iterator for all the entities in grid cells neighboring `cell`.
     #[inline]
     pub fn iter_neighbors(&self, cell: UVec2) -> impl Iterator<Item = Entity> + '_ {
         self.get_cell_neighbors(cell)
             .flat_map(move |neighbor_cell| self.get(neighbor_cell))
+    }
+
+    /// Iterator for all the entities in grid cells neighboring and including `cell`.
+    #[inline]
+    pub fn iter_neighbors_inclusive(&self, cell: UVec2) -> impl Iterator<Item = Entity> + '_ {
+        self.iter_neighbors(cell).chain(self.get(cell))
     }
 
     #[inline]
@@ -527,5 +534,35 @@ mod tests {
         assert!(neighbors.contains(&entity1));
         assert!(neighbors.contains(&entity2));
         assert!(!neighbors.contains(&entity3)); // Not adjacent to (5,5) - at (7,7)
+    }
+
+    #[test]
+    fn test_iter_neighbors_inclusive() {
+        let mut grid = Grid::<TestMarker>::default()
+            .with_dimensions(UVec2::new(10, 10))
+            .with_spacing(Vec2::splat(32.));
+        let entity1 = Entity::from_raw(42);
+        let entity2 = Entity::from_raw(43);
+        let entity3 = Entity::from_raw(44);
+        let center_entity = Entity::from_raw(45);
+
+        // Insert entities in neighboring cells and center cell
+        grid.insert(entity1, UVec2::new(4, 4)).unwrap();
+        grid.insert(entity2, UVec2::new(5, 4)).unwrap();
+        grid.insert(center_entity, UVec2::new(5, 5)).unwrap(); // Center cell
+        grid.insert(entity3, UVec2::new(7, 7)).unwrap();
+
+        // Get neighbors including center cell (5,5)
+        let neighbors: Vec<Entity> = grid.iter_neighbors_inclusive(UVec2::new(5, 5)).collect();
+
+        // Should find entity1, entity2, and center_entity
+        assert!(neighbors.contains(&entity1));
+        assert!(neighbors.contains(&entity2));
+        assert!(neighbors.contains(&center_entity)); // Should include center entity
+        assert!(!neighbors.contains(&entity3)); // Not adjacent to (5,5) - at (7,7)
+
+        // Verify it includes more entities than regular iter_neighbors
+        let regular_neighbors: Vec<Entity> = grid.iter_neighbors(UVec2::new(5, 5)).collect();
+        assert!(neighbors.len() > regular_neighbors.len());
     }
 }
