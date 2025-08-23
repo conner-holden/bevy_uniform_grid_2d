@@ -55,9 +55,9 @@ fn setup(mut commands: Commands, mut app_state: ResMut<NextState<AppState>>) {
             custom_size: Some(Vec2::splat(10.0)),
             ..default()
         },
-        // Entities with a `Transform` are automatically added to the grid
+        // A `Transform` is required to translate a position into a grid coordinate
         Transform::from_xyz(200., 200., 0.),
-        // Player marker for movement handling
+        // Player marker for movement and grid
         Player,
     ));
 

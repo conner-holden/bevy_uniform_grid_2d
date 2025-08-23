@@ -1,5 +1,64 @@
 # Justfile for bevy_uniform_grid_2d project automation
 
+# Update README.md examples with actual code from example files
+update-readme-examples:
+    #!/usr/bin/env python3
+    import re
+    
+    # Read current README
+    with open("README.md", 'r', encoding='utf-8') as f:
+        readme_content = f.read()
+    
+    # Define the examples to update
+    examples = {
+        "minimal": "examples/minimal.rs",
+        "stress_test": "examples/stress_test.rs", 
+        "resize": "examples/resize.rs",
+        "multiple": "examples/multiple.rs",
+    }
+    
+    updated_content = readme_content
+    
+    for example_name, example_file in examples.items():
+        print(f"Updating {example_name} example...")
+        
+        # Read the actual example code
+        try:
+            with open(example_file, 'r', encoding='utf-8') as f:
+                example_code = f.read()
+        except FileNotFoundError:
+            print(f"Warning: {example_file} not found")
+            continue
+            
+        # Clean up the code (remove #![allow(...)] and #[rustfmt::skip] attributes)
+        lines = example_code.split('\n')
+        filtered_lines = []
+        for line in lines:
+            stripped = line.strip()
+            if (stripped.startswith('#![allow(') and stripped.endswith(')]')) or stripped == '#[rustfmt::skip]':
+                continue
+            filtered_lines.append(line)
+        clean_code = '\n'.join(filtered_lines)
+        
+        # Find the code block pattern for this example
+        pattern = rf'(<details>\s*<summary><code>{re.escape(example_file)}</code></summary>\s*```rust\n)(.*?)(```\s*</details>)'
+        
+        # Use DOTALL flag to match across newlines
+        match = re.search(pattern, updated_content, re.DOTALL | re.IGNORECASE)
+        
+        if match:
+            # Replace the code between the rust markers
+            new_section = match.group(1) + clean_code + '\n' + match.group(3)
+            updated_content = updated_content[:match.start()] + new_section + updated_content[match.end():]
+            print(f"  ✓ Updated {example_name} code block")
+        else:
+            print(f"  ✗ Could not find {example_name} code block pattern")
+    
+    # Write updated README
+    with open("README.md", 'w', encoding='utf-8') as f:
+        f.write(updated_content)
+    print(f"\n✓ README.md updated successfully")
+
 # Backport features from a source version to a target bevy branch
 backport:
     #!/usr/bin/env bash

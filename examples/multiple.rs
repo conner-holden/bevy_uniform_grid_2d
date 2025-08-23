@@ -9,33 +9,32 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: bevy::window::WindowResolution::new(800., 800.),
-                title: "Minimal Example".to_string(),
+                title: "Multiple Grids Example".to_string(),
                 present_mode: bevy::window::PresentMode::Immediate, // Disable VSync to show max FPS
                 ..default()
             }),
             ..default()
         }))
-        // Add grid plugin. `debug` toggles grid lines (default is false).
-        //
-        // The plugin is generic over `Player`. Anything with this component
-        // will get added to the grid. This allows you to create multiple grids
-        // for distinct purposes.
-        //
-        // The below creates a square 600x600 grid with the bottom left at the origin
-        .add_plugins(UniformGrid2dPlugin::<Player>::default().debug(true)
-                // Size of the grid (units are grid cells)
+        .add_plugins(UniformGrid2dPlugin::<Grid1>::default().debug(true)
                 .dimensions(UVec2::splat(30))
-                // Size of each grid cell (units are integer world-space coordinates)
                 .spacing(UVec2::splat(20))
-                // You can anchor the grid somewhere specific (default is the origin)
-                // .anchor(Vec2::new(23.4, 10.1))
+        )
+        .add_plugins(UniformGrid2dPlugin::<Grid2>::default().debug(true)
+                .dimensions(UVec2::splat(30))
+                .spacing(UVec2::splat(20))
+                .anchor(Vec2::new(310., 315.))
         )
         .add_systems(Startup, setup)
-        .add_systems(Update, handle_grid_changes)
         .add_systems(Update, movement)
         .add_systems(Update, update_ui)
         .run();
 }
+
+#[derive(Component)]
+struct Grid1;
+
+#[derive(Component)]
+struct Grid2;
 
 #[derive(Component)]
 struct Player;
@@ -54,10 +53,11 @@ fn setup(mut commands: Commands) {
             custom_size: Some(Vec2::splat(10.0)),
             ..default()
         },
-        // A `Transform` is required to translate a position into a grid coordinate
         Transform::from_xyz(300., 300., 0.),
-        // Player marker for movement and grid
+        // Player marker for movement handling
         Player,
+        Grid1,
+        Grid2,
     ));
 
     // Add UI for grid cell display
@@ -80,27 +80,6 @@ fn setup(mut commands: Commands) {
                 GridCellUI,
             ));
         });
-}
-
-fn handle_grid_changes(
-    grid: Res<Grid<Player>>,
-    // The current grid cell of an entity is synced to `GridCell`
-    grid_cells: Query<&GridCell<Player>>,
-    mut events: EventReader<GridEvent>,
-) {
-    // Events are emitted any time an entity enters, leaves, or changes which grid cell it's in
-    for event in events.read() {
-        // The grid `operation` can be `Insert`, `Remove`, or `Update`
-        info!("{}", event);
-
-        if let GridOperation::Update { from, to } = event.operation {
-            // Here we are checking all the entities in neighboring grid cells
-            // whenever the entity in question changes the cell it's in
-            for neighbor_entity in grid.iter_neighbors(to) {
-                // ... attack neighbors?
-            }
-        }
-    }
 }
 
 // Move with WASD
@@ -132,15 +111,25 @@ fn movement(
 fn update_ui(
     player_query: Query<&Transform, With<Player>>,
     mut ui_query: Query<&mut Text, With<GridCellUI>>,
-    grid: Res<Grid<Player>>,
+    grid_1: Res<Grid<Grid1>>,
+    grid_2: Res<Grid<Grid2>>,
 ) {
     if let (Ok(transform), Ok(mut text)) = (player_query.single(), ui_query.single_mut()) {
-        match grid.world_to_grid(transform.translation) {
+        **text = "".to_string();
+        match grid_1.world_to_grid(transform.translation) {
             Ok(cell) => {
-                **text = format!("Grid Cell: ({}, {})", cell.x, cell.y);
+                **text += &format!("Grid Cell (1): ({}, {})", cell.x, cell.y);
             }
             Err(_) => {
-                **text = "Grid Cell: Out of bounds".to_string();
+                **text += "Grid Cell (1): Out of bounds";
+            }
+        }
+        match grid_2.world_to_grid(transform.translation) {
+            Ok(cell) => {
+                **text += &format!("\nGrid Cell (2): ({}, {})", cell.x, cell.y);
+            }
+            Err(_) => {
+                **text += "\nGrid Cell (2): Out of bounds";
             }
         }
     }
