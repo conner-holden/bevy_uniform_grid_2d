@@ -1,5 +1,9 @@
 # Justfile for bevy_uniform_grid_2d project automation
 
+[private]
+default:
+  @just -l
+
 # Update README.md examples with actual code from example files
 update-readme-examples:
     #!/usr/bin/env python3

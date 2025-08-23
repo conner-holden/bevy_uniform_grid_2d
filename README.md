@@ -86,8 +86,8 @@ fn main() {
         .add_plugins(UniformGrid2dPlugin::<Player>::default().debug(true)
                 // Size of the grid (units are grid cells)
                 .dimensions(UVec2::splat(30))
-                // Size of each grid cell (units are integer world-space coordinates)
-                .spacing(UVec2::splat(20))
+                // Size of each grid cell (units are world-space coordinates)
+                .spacing(Vec2::splat(20.))
                 // You can anchor the grid somewhere specific (default is the origin)
                 // .anchor(Vec2::new(23.4, 10.1))
         )
@@ -262,7 +262,7 @@ fn main() {
             .debug(true)
             // The grid shape is defined using the plugin's builder methods.
             .dimensions(UVec2::splat(30))
-            .spacing(UVec2::splat(20)),
+            .spacing(Vec2::splat(20.)),
     )
     // Change direction of sprites every 3 seconds
     .insert_resource(ChangeDirectionTimer(Timer::from_seconds(
@@ -302,7 +302,7 @@ fn setup(mut commands: Commands, grid: Res<Grid<Marker, N>>) {
     // Spawn 1000 sprites randomly within (and possibly a little outside) the grid
     let mut rng = rand::thread_rng();
     let padding = 50.;
-    let max = (grid.dimensions() * grid.spacing()).as_vec2() + Vec2::splat(padding) + grid.anchor();
+    let max = grid.dimensions().as_vec2() * grid.spacing() + Vec2::splat(padding) + grid.anchor();
     let min = Vec2::splat(-padding) + grid.anchor();
 
     let entity_count = 1000;
@@ -488,7 +488,7 @@ fn shuffle_grid_size(
         grid.write(
             TransformGridEvent::default()
                 .with_dimensions(UVec2::splat(rng.gen_range(10..20)))
-                .with_spacing(UVec2::splat(rng.gen_range(15..25))),
+                .with_spacing(Vec2::splat(rng.gen_range(15.0..25.0))),
         );
     }
 }
@@ -557,11 +557,11 @@ fn main() {
         }))
         .add_plugins(UniformGrid2dPlugin::<Grid1>::default().debug(true)
                 .dimensions(UVec2::splat(30))
-                .spacing(UVec2::splat(20))
+                .spacing(Vec2::splat(20.))
         )
         .add_plugins(UniformGrid2dPlugin::<Grid2>::default().debug(true)
                 .dimensions(UVec2::splat(30))
-                .spacing(UVec2::splat(20))
+                .spacing(Vec2::splat(20.))
                 .anchor(Vec2::new(310., 315.))
         )
         .add_systems(Startup, setup)

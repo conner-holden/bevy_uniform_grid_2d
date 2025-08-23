@@ -99,7 +99,7 @@ fn shuffle_grid_size(
         grid.write(
             TransformGridEvent::default()
                 .with_dimensions(UVec2::splat(rng.gen_range(10..20)))
-                .with_spacing(UVec2::splat(rng.gen_range(15..25))),
+                .with_spacing(Vec2::splat(rng.gen_range(15.0..25.0))),
         );
     }
 }
