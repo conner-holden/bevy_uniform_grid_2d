@@ -55,9 +55,9 @@ fn setup(mut commands: Commands, mut app_state: ResMut<NextState<AppState>>) {
             custom_size: Some(Vec2::splat(10.0)),
             ..default()
         },
-        // Entities with a `Transform` are automatically added to the grid
+        // A `Transform` is required to translate a position into a grid coordinate
         Transform::from_xyz(200., 200., 0.),
-        // Player marker for movement handling
+        // Player marker for movement and grid
         Player,
     ));
 
@@ -99,7 +99,7 @@ fn shuffle_grid_size(
         grid.send(
             TransformGridEvent::default()
                 .with_dimensions(UVec2::splat(rng.gen_range(10..20)))
-                .with_spacing(UVec2::splat(rng.gen_range(15..25))),
+                .with_spacing(Vec2::splat(rng.gen_range(15.0..25.0))),
         );
     }
 }
@@ -125,14 +125,13 @@ fn update_ui(
     mut ui_query: Query<&mut Text, With<GridCellUI>>,
     grid: Res<Grid<Player>>,
 ) {
-    if let (Ok(transform), Ok(mut text)) = (player_query.get_single(), ui_query.get_single_mut()) {
-        match grid.world_to_grid(transform.translation) {
-            Ok(cell) => {
-                **text = format!("Grid Cell: ({}, {})", cell.x, cell.y);
-            }
-            Err(_) => {
-                **text = "Grid Cell: Out of bounds".to_string();
-            }
+    let (transform, mut text) = (player_query.single(), ui_query.single_mut());
+    match grid.world_to_grid(transform.translation) {
+        Ok(cell) => {
+            **text = format!("Grid Cell: ({}, {})", cell.x, cell.y);
+        }
+        Err(_) => {
+            **text = "Grid Cell: Out of bounds".to_string();
         }
     }
 }

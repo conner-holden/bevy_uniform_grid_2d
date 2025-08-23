@@ -38,7 +38,7 @@ fn main() {
             .debug(true)
             // The grid shape is defined using the plugin's builder methods.
             .dimensions(UVec2::splat(30))
-            .spacing(UVec2::splat(20)),
+            .spacing(Vec2::splat(20.)),
     )
     // Change direction of sprites every 3 seconds
     .insert_resource(ChangeDirectionTimer(Timer::from_seconds(
@@ -78,7 +78,7 @@ fn setup(mut commands: Commands, grid: Res<Grid<Marker, N>>) {
     // Spawn 1000 sprites randomly within (and possibly a little outside) the grid
     let mut rng = rand::thread_rng();
     let padding = 50.;
-    let max = (grid.dimensions() * grid.spacing()).as_vec2() + Vec2::splat(padding) + grid.anchor();
+    let max = grid.dimensions().as_vec2() * grid.spacing() + Vec2::splat(padding) + grid.anchor();
     let min = Vec2::splat(-padding) + grid.anchor();
 
     let entity_count = 1000;

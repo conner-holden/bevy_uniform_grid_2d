@@ -14,7 +14,7 @@ use crate::{
 
 pub struct UniformGrid2dPlugin<Marker: Component, const N: usize = 4> {
     dimensions: UVec2,
-    spacing: UVec2,
+    spacing: Vec2,
     anchor: Vec2,
     debug: bool,
     marker: PhantomData<Marker>,
@@ -34,7 +34,7 @@ impl<Marker: Component, const N: usize> UniformGrid2dPlugin<Marker, N> {
     }
 
     /// Builder method to set the shape of each grid cell in world-space units.
-    pub fn spacing(mut self, value: impl Into<UVec2>) -> Self {
+    pub fn spacing(mut self, value: impl Into<Vec2>) -> Self {
         self.spacing = value.into();
         self
     }
@@ -50,7 +50,7 @@ impl<Marker: Component, const N: usize> Default for UniformGrid2dPlugin<Marker, 
     fn default() -> Self {
         Self {
             dimensions: UVec2::ONE,
-            spacing: UVec2::ONE,
+            spacing: Vec2::ONE,
             anchor: Vec2::ZERO,
             debug: false,
             marker: PhantomData,

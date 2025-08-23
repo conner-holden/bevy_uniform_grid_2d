@@ -1181,7 +1181,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_uniform_grid_2d"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "bevy",
  "criterion",

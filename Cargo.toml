@@ -1,6 +1,6 @@
 [package]
 name = "bevy_uniform_grid_2d"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2024"
 description = "A simple Bevy plugin for uniform grid spatial indexing"
 authors = ["Conner Holden"]

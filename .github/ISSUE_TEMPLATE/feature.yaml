@@ -21,10 +21,10 @@ body:
       label: Version
       description: What version are you using?
       options:
-        - v0.4.0 (Latest)
-        - v0.3.0
-        - v0.2.0
-        - v0.1.0
+        - v0.4.x (Latest)
+        - v0.3.x
+        - v0.2.x
+        - v0.1.x
       default: 0
     validations:
       required: true
