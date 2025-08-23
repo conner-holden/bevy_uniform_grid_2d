@@ -13,13 +13,16 @@ const ON: Color = Color::Srgba(tailwind::GRAY_200);
 const OFF: Color = Color::Srgba(tailwind::RED_500);
 const OUT: Color = Color::Srgba(tailwind::GRAY_950);
 
+// Pre-allocated capacity for each grid cell (see plugin initialization)
+const N: usize = 8;
+
 fn main() {
     let mut app = App::new();
     // Setup window
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             resolution: WindowResolution::new(800., 800.),
-            title: "Many Moving Entities Example".to_string(),
+            title: "Stress Test Example".to_string(),
             present_mode: bevy::window::PresentMode::Immediate, // Disable VSync to show max FPS
             ..default()
         }),
@@ -28,13 +31,14 @@ fn main() {
     // Add performance UI
     .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
     .add_plugins(PerfUiPlugin)
-    // Add grid plugin. `Marker` is a marker component for opting entities into the grid.
-    .add_plugins(UniformGrid2dPlugin::<Marker>::default().debug(true))
-    // `5` sets pre-allocated capacity of each grid cell. Default is 4.
-    .insert_resource(
-        Grid::<Marker>::default()
+    .add_plugins(
+        // Add grid plugin. `Marker` is a marker component for opting entities into the grid.
+        // Our const `N` sets pre-allocated capacity of 8 for each grid cell. Default is 4.
+        UniformGrid2dPlugin::<Marker, N>::default()
+            .debug(true)
+            // The grid shape is defined using the plugin's builder methods.
             .dimensions(UVec2::splat(30))
-            .spacing(UVec2::splat(20)),
+            .spacing(Vec2::splat(20.)),
     )
     // Change direction of sprites every 3 seconds
     .insert_resource(ChangeDirectionTimer(Timer::from_seconds(
@@ -57,7 +61,7 @@ struct Direction(Vec2);
 #[derive(Component)]
 struct Marker;
 
-fn setup(mut commands: Commands, grid: Res<Grid<Marker>>) {
+fn setup(mut commands: Commands, grid: Res<Grid<Marker, N>>) {
     // Add performance diagnostics UI
     commands.spawn((
         PerfUiRoot::default(),
@@ -74,8 +78,8 @@ fn setup(mut commands: Commands, grid: Res<Grid<Marker>>) {
     // Spawn 1000 sprites randomly within (and possibly a little outside) the grid
     let mut rng = rand::thread_rng();
     let padding = 50.;
-    let max = (grid.dimensions * grid.spacing).as_vec2() + Vec2::splat(padding) + grid.anchor;
-    let min = Vec2::splat(-padding) + grid.anchor;
+    let max = grid.dimensions().as_vec2() * grid.spacing() + Vec2::splat(padding) + grid.anchor();
+    let min = Vec2::splat(-padding) + grid.anchor();
 
     let entity_count = 1000;
     let entity_size = Vec2::splat(5.);

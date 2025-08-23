@@ -9,6 +9,16 @@ pub struct GridEvent {
     pub operation: GridOperation,
 }
 
+impl std::fmt::Display for GridEvent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "GridEvent {{ entity={0} operation={1} }}",
+            self.entity, self.operation
+        )
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum GridOperation {
     Insert { to: UVec2 },
