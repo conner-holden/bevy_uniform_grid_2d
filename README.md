@@ -8,6 +8,9 @@
 
 An easy-to-use plugin for people who need basic spatial indexing.
 
+| 0.16 | [0.15](https://github.com/conner-holden/bevy_uniform_grid_2d/tree/bevy-0.15?tab=readme-ov-file#bevy_uniform_grid_2d) | [0.14](https://github.com/conner-holden/bevy_uniform_grid_2d/tree/bevy-0.14?tab=readme-ov-file#bevy_uniform_grid_2d) | [0.13](https://github.com/conner-holden/bevy_uniform_grid_2d/tree/bevy-0.13?tab=readme-ov-file#bevy_uniform_grid_2d) |
+|-|-|-|-|
+
 ## Installation
 ```sh
 cargo add bevy_uniform_grid_2d@0.4
@@ -30,7 +33,7 @@ struct MyMarker;
 .add_plugins(UniformGrid2dPlugin::<MyMarker>::default()
     .debug(true)
     .dimensions(UVec2::splat(30)) // Size of the grid in units of grid cells
-    .spacing(UVec2::splat(20)), // Size of each cell in units of integer world coordinates
+    .spacing(Vec2::splat(20.)), // Size of each cell in units of world coordinates
 )
 ```
 
